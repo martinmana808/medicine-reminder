@@ -7,6 +7,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const provided =
     url.searchParams.get("secret") ??
+    req.headers.get("x-cron-secret") ??
     req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
   if (process.env.CRON_SECRET && provided !== process.env.CRON_SECRET) {
