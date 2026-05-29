@@ -36,18 +36,18 @@ export function TakeNowControl({ medicineId }: { medicineId: number }) {
         <button
           onClick={() => submit(new Date().toISOString())}
           disabled={loading}
-          className="rounded-md bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400 disabled:opacity-50"
+          className="rounded-md border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50"
         >
-          {loading ? "Saving…" : "✓ Taken now"}
+          {loading ? "Saving…" : "Taken now"}
         </button>
         <button
           onClick={() => {
             setWhen(nowLocal());
             setOpen(true);
           }}
-          className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700"
+          className="rounded-md px-2 py-1.5 text-sm text-slate-500 hover:text-slate-300"
         >
-          At a time…
+          at a time…
         </button>
       </div>
     );

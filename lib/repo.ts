@@ -36,6 +36,8 @@ type DoseRow = {
   status: "due" | "taken" | "skipped";
   taken_at: Date | null;
   created_at: Date;
+  source?: string;
+  prev_next_due_at?: Date | null;
   medicine_name?: string;
 };
 
@@ -232,19 +234,21 @@ export async function markTaken(
   doseId: number,
   takenAt: Date,
 ): Promise<boolean> {
-  const doseRows = await query<DoseRow>(
-    `update doses set status = 'taken', taken_at = $2
-     where id = $1 and status <> 'taken'
-     returning *`,
-    [doseId, takenAt],
+  const existing = await query<DoseRow>(
+    "select * from doses where id = $1",
+    [doseId],
   );
-  if (doseRows.length === 0) return false;
-  const dose = toDose(doseRows[0]);
+  if (existing.length === 0 || existing[0].status === "taken") return false;
+  const med = await getMedicine(existing[0].medicine_id);
+  const prevNextDue = med?.nextDueAt ?? null;
 
-  const med = await getMedicine(dose.medicineId);
-  if (!med) return true;
+  await query(
+    `update doses set status = 'taken', taken_at = $2, prev_next_due_at = $3
+     where id = $1 and status <> 'taken'`,
+    [doseId, takenAt, prevNextDue],
+  );
 
-  if (med.type === "interval") {
+  if (med && med.type === "interval") {
     const newNextDue = reanchorAfterTaken(specOf(med), takenAt, med.nextDueAt);
     const finished = isCourseFinished(newNextDue, med.endAt);
     await query(
@@ -288,23 +292,27 @@ export async function takeMedicineAt(
   if (!med) return false;
   const tz = await getTimezone();
 
+  const prevNextDue = med.nextDueAt;
   const pending = await query<DoseRow>(
     "select * from doses where medicine_id = $1 and status = 'due' order by scheduled_at desc limit 1",
     [medicineId],
   );
 
   if (pending.length > 0) {
+    // Resolving a real scheduled dose — keep its 'scheduled' source.
     await query(
-      "update doses set status = 'taken', taken_at = $2 where id = $1",
-      [pending[0].id, takenAt],
+      "update doses set status = 'taken', taken_at = $2, prev_next_due_at = $3 where id = $1",
+      [pending[0].id, takenAt, prevNextDue],
     );
   } else {
+    // Ad-hoc take with no pending dose — mark it 'manual' so undo removes it.
     await query(
-      `insert into doses (medicine_id, scheduled_at, status, taken_at)
-       values ($1, $2, 'taken', $2)
+      `insert into doses (medicine_id, scheduled_at, status, taken_at, source, prev_next_due_at)
+       values ($1, $2, 'taken', $2, 'manual', $3)
        on conflict (medicine_id, scheduled_at)
-       do update set status = 'taken', taken_at = excluded.taken_at`,
-      [medicineId, takenAt],
+       do update set status = 'taken', taken_at = excluded.taken_at,
+                     source = 'manual', prev_next_due_at = excluded.prev_next_due_at`,
+      [medicineId, takenAt, prevNextDue],
     );
   }
 
@@ -318,30 +326,57 @@ export async function takeMedicineAt(
 }
 
 /**
- * Undo a taken dose: mark it pending again and reset the medicine's next dose
- * back to that dose's scheduled time (so it will remind again).
+ * Undo a taken dose. A manual (ad-hoc) dose is deleted outright so it leaves no
+ * phantom entry; a scheduled dose reverts to pending. Either way the medicine's
+ * next dose is restored to what it was before the dose was taken.
  */
 export async function undoDose(doseId: number): Promise<boolean> {
   const doseRows = await query<DoseRow>("select * from doses where id = $1", [
     doseId,
   ]);
   if (doseRows.length === 0) return false;
-  const dose = toDose(doseRows[0]);
+  const row = doseRows[0];
 
-  await query(
-    "update doses set status = 'due', taken_at = null where id = $1",
-    [doseId],
-  );
-
-  const med = await getMedicine(dose.medicineId);
+  const med = await getMedicine(row.medicine_id);
   if (med) {
-    const finished = isCourseFinished(dose.scheduledAt, med.endAt);
+    const restore = row.prev_next_due_at ?? row.scheduled_at;
+    const finished = isCourseFinished(restore, med.endAt);
     await query(
       "update medicines set next_due_at = $2, active = $3 where id = $1",
-      [med.id, finished ? null : dose.scheduledAt, !finished],
+      [med.id, finished ? null : restore, !finished],
+    );
+  }
+
+  if (row.source === "manual") {
+    await query("delete from doses where id = $1", [doseId]);
+  } else {
+    await query(
+      "update doses set status = 'due', taken_at = null where id = $1",
+      [doseId],
     );
   }
   return true;
+}
+
+/** Delete a dose entirely (history cleanup). */
+export async function deleteDose(doseId: number): Promise<boolean> {
+  const rows = await query<DoseRow>(
+    "delete from doses where id = $1 returning id",
+    [doseId],
+  );
+  return rows.length > 0;
+}
+
+/** Edit the recorded "taken at" time of a dose (does not re-anchor schedule). */
+export async function updateDoseTakenAt(
+  doseId: number,
+  takenAt: Date,
+): Promise<boolean> {
+  const rows = await query<DoseRow>(
+    "update doses set taken_at = $2 where id = $1 returning id",
+    [doseId, takenAt],
+  );
+  return rows.length > 0;
 }
 
 // ---------- doses (history / status) ----------
@@ -362,7 +397,7 @@ export async function listRecentDoses(
   }));
 }
 
-/** Latest dose per medicine, used to show "today's status" on the home screen. */
+/** Latest dose per medicine, used to show "last taken" on the home screen. */
 export async function latestDosePerMedicine(): Promise<Map<number, Dose>> {
   const rows = await query<DoseRow>(
     `select distinct on (medicine_id) *
@@ -372,6 +407,67 @@ export async function latestDosePerMedicine(): Promise<Map<number, Dose>> {
   const map = new Map<number, Dose>();
   for (const r of rows) map.set(r.medicine_id, toDose(r));
   return map;
+}
+
+/** All outstanding (un-taken) due doses, oldest first, with medicine name. */
+export async function getOutstandingDueDoses(): Promise<DoseWithMedicine[]> {
+  const rows = await query<DoseRow>(
+    `select d.*, m.name as medicine_name
+     from doses d join medicines m on m.id = d.medicine_id
+     where d.status = 'due' and m.active = true
+     order by d.medicine_id, d.scheduled_at asc`,
+  );
+  return rows.map((r) => ({ ...toDose(r), medicineName: r.medicine_name ?? "" }));
+}
+
+// ---------- debug / demo seeding ----------
+
+const DEMO_PREFIX = "[DEMO]";
+
+export async function clearDemoData(): Promise<void> {
+  await query("delete from medicines where name like $1", [`${DEMO_PREFIX}%`]);
+}
+
+/** Seed one "yellow" medicine (1 overdue dose) and one "red" (2 overdue doses). */
+export async function createDemoData(now: Date): Promise<void> {
+  await clearDemoData();
+  const HOUR = 3_600_000;
+
+  // Yellow: a single overdue dose.
+  const yellow = await query<MedicineRow>(
+    `insert into medicines (name, type, interval_hours, start_at, end_at, next_due_at, active)
+     values ($1, 'interval', 12, $2, null, $3, true) returning *`,
+    [
+      `${DEMO_PREFIX} Yellow (1 due)`,
+      new Date(now.getTime() - HOUR),
+      new Date(now.getTime() + 11 * HOUR),
+    ],
+  );
+  await query(
+    "insert into doses (medicine_id, scheduled_at, status, source) values ($1, $2, 'due', 'scheduled')",
+    [yellow[0].id, new Date(now.getTime() - HOUR)],
+  );
+
+  // Red: two overdue doses (oldest renders red, newer yellow).
+  const red = await query<MedicineRow>(
+    `insert into medicines (name, type, interval_hours, start_at, end_at, next_due_at, active)
+     values ($1, 'interval', 12, $2, null, $3, true) returning *`,
+    [
+      `${DEMO_PREFIX} Red (2 due)`,
+      new Date(now.getTime() - 13 * HOUR),
+      new Date(now.getTime() + 11 * HOUR),
+    ],
+  );
+  await query(
+    `insert into doses (medicine_id, scheduled_at, status, source) values
+       ($1, $2, 'due', 'scheduled'),
+       ($1, $3, 'due', 'scheduled')`,
+    [
+      red[0].id,
+      new Date(now.getTime() - 13 * HOUR),
+      new Date(now.getTime() - HOUR),
+    ],
+  );
 }
 
 // ---------- push subscriptions ----------

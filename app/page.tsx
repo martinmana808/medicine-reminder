@@ -1,19 +1,52 @@
 import Link from "next/link";
-import { latestDosePerMedicine, listMedicines, getTimezone } from "@/lib/repo";
+import {
+  getOutstandingDueDoses,
+  latestDosePerMedicine,
+  listMedicines,
+  getTimezone,
+} from "@/lib/repo";
 import { fmtDateTime, fmtRelative, scheduleSummary } from "@/lib/format";
+import type { DoseWithMedicine } from "@/lib/types";
+import { DueTakeButton } from "@/components/DueTakeButton";
 import { TakeNowControl } from "@/components/TakeNowControl";
 import { DeleteButton } from "@/components/DeleteButton";
 
 export const dynamic = "force-dynamic";
 
+type DueCard = { dose: DoseWithMedicine; color: "red" | "yellow"; behind: number };
+
 export default async function Home() {
-  const [meds, tz, latest] = await Promise.all([
+  const [meds, outstanding, latest, tz] = await Promise.all([
     listMedicines(),
-    getTimezone(),
+    getOutstandingDueDoses(),
     latestDosePerMedicine(),
+    getTimezone(),
   ]);
   const now = new Date();
-  const active = meds.filter((m) => m.active);
+
+  // Group outstanding due doses per medicine (already oldest-first from the query).
+  const byMed = new Map<number, DoseWithMedicine[]>();
+  for (const d of outstanding) {
+    const arr = byMed.get(d.medicineId) ?? [];
+    arr.push(d);
+    byMed.set(d.medicineId, arr);
+  }
+
+  // One card per outstanding dose. Oldest of a 2+ backlog is red; rest yellow.
+  const dueCards: DueCard[] = [];
+  for (const list of byMed.values()) {
+    list.forEach((dose, i) => {
+      const color = list.length >= 2 && i === 0 ? "red" : "yellow";
+      dueCards.push({ dose, color, behind: list.length });
+    });
+  }
+  dueCards.sort((a, b) => {
+    if (a.color !== b.color) return a.color === "red" ? -1 : 1;
+    return a.dose.scheduledAt.getTime() - b.dose.scheduledAt.getTime();
+  });
+
+  const dueMedIds = new Set(byMed.keys());
+  const calmMeds = meds.filter((m) => m.active && !dueMedIds.has(m.id));
   const finished = meds.filter((m) => !m.active);
 
   if (meds.length === 0) {
@@ -35,7 +68,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Today</h1>
         <Link
@@ -46,65 +79,92 @@ export default async function Home() {
         </Link>
       </div>
 
-      <ul className="space-y-3">
-        {active.map((m) => {
-          const dose = latest.get(m.id);
-          const isDue =
-            dose?.status === "due" &&
-            !!m.nextDueAt &&
-            new Date(dose.scheduledAt) <= now;
-          return (
-            <li
-              key={m.id}
-              className={`rounded-xl border p-4 ${
-                isDue
-                  ? "border-teal-500 bg-teal-500/10"
-                  : "border-slate-800 bg-slate-900/50"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold">{m.name}</p>
-                  <p className="text-sm text-slate-400">{scheduleSummary(m)}</p>
+      {/* Due / overdue — alarming */}
+      {dueCards.length > 0 && (
+        <ul className="space-y-3">
+          {dueCards.map(({ dose, color, behind }) => {
+            const styles =
+              color === "red"
+                ? "border-red-500 bg-red-500/15"
+                : "border-amber-400 bg-amber-400/10";
+            const accent =
+              color === "red" ? "text-red-300" : "text-amber-300";
+            return (
+              <li
+                key={dose.id}
+                className={`rounded-xl border-2 p-4 ${styles}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{dose.medicineName}</p>
+                    <p className={`text-sm font-medium ${accent}`}>
+                      {color === "red"
+                        ? `${behind} doses behind`
+                        : behind >= 2
+                          ? "Also due"
+                          : "Due now"}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Was due {fmtDateTime(dose.scheduledAt, tz)} (
+                      {fmtRelative(dose.scheduledAt, now)})
+                    </p>
+                  </div>
+                  <DueTakeButton doseId={dose.id} />
                 </div>
-                <Link
-                  href={`/edit/${m.id}`}
-                  className="text-xs text-slate-500 hover:text-teal-400"
-                >
-                  Edit
-                </Link>
-              </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
-              <div className="mt-3 text-sm">
-                {isDue ? (
-                  <span className="font-medium text-teal-300">Due now</span>
-                ) : (
-                  <span className="text-slate-400">
-                    Next: {fmtDateTime(m.nextDueAt, tz)}{" "}
-                    <span className="text-slate-500">
-                      ({fmtRelative(m.nextDueAt, now)})
-                    </span>
+      {/* Caught up — calm / resting */}
+      {calmMeds.length > 0 && (
+        <ul className="space-y-3">
+          {calmMeds.map((m) => {
+            const dose = latest.get(m.id);
+            return (
+              <li
+                key={m.id}
+                className="rounded-xl border border-slate-800 bg-slate-900/40 p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-slate-200">{m.name}</p>
+                    <p className="text-sm text-slate-500">
+                      {scheduleSummary(m)}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/edit/${m.id}`}
+                    className="text-xs text-slate-600 hover:text-teal-400"
+                  >
+                    Edit
+                  </Link>
+                </div>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  Next: {fmtDateTime(m.nextDueAt, tz)}{" "}
+                  <span className="text-slate-600">
+                    ({fmtRelative(m.nextDueAt, now)})
                   </span>
-                )}
+                </p>
                 {dose?.status === "taken" && dose.takenAt && (
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Last taken {fmtDateTime(dose.takenAt, tz)} (
-                    {fmtRelative(dose.takenAt, now)})
+                  <p className="text-xs text-slate-600">
+                    Last taken {fmtDateTime(dose.takenAt, tz)}
                   </p>
                 )}
-              </div>
 
-              <div className="mt-3">
-                <TakeNowControl medicineId={m.id} />
-              </div>
-
-              <div className="mt-2 flex justify-end">
-                <DeleteButton medicineId={m.id} />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                <div className="mt-3">
+                  <TakeNowControl medicineId={m.id} />
+                </div>
+                <div className="mt-2 flex justify-end">
+                  <DeleteButton medicineId={m.id} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {finished.length > 0 && (
         <div>

@@ -28,6 +28,12 @@ create table if not exists doses (
   unique (medicine_id, scheduled_at)
 );
 
+-- 'scheduled' doses come from the cron heartbeat; 'manual' doses are ad-hoc
+-- "mark taken" actions. prev_next_due_at stores the medicine's next_due_at at the
+-- moment of taking so an undo can restore it exactly.
+alter table doses add column if not exists source text not null default 'scheduled';
+alter table doses add column if not exists prev_next_due_at timestamptz;
+
 create table if not exists push_subscriptions (
   endpoint text primary key,
   p256dh text not null,
