@@ -15,10 +15,10 @@ function nowLocal(): string {
   return isoToLocal(new Date().toISOString());
 }
 
-const statusStyles: Record<string, string> = {
-  taken: "text-teal-400",
-  due: "text-amber-400",
-  skipped: "text-slate-500",
+const statusChip: Record<string, string> = {
+  taken: "bg-teal-50 text-teal-700 ring-1 ring-teal-200",
+  due: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  skipped: "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
 };
 
 type EditMode = null | "take" | "edit";
@@ -80,7 +80,7 @@ export function DoseHistoryRow(props: {
   }
 
   const btn =
-    "rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-700";
+    "rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50";
 
   return (
     <li
@@ -93,23 +93,23 @@ export function DoseHistoryRow(props: {
         setMenu(true);
       }}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-medium">{props.medicineName}</p>
+          <p className="font-medium text-slate-900">{props.medicineName}</p>
           <p className="text-xs text-slate-500">
             Scheduled {props.scheduledLabel}
           </p>
         </div>
-        <div className="text-right">
-          <p
-            className={`text-sm font-medium capitalize ${
-              statusStyles[props.status] ?? "text-slate-400"
+        <div className="flex flex-col items-end gap-1">
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
+              statusChip[props.status] ?? "bg-slate-100 text-slate-500"
             }`}
           >
             {props.status}
-          </p>
+          </span>
           {props.takenLabel && (
-            <p className="text-xs text-slate-500">{props.takenLabel}</p>
+            <p className="text-xs text-slate-400">{props.takenLabel}</p>
           )}
         </div>
       </div>
@@ -122,7 +122,7 @@ export function DoseHistoryRow(props: {
                 setWhen(nowLocal());
                 setMode("take");
               }}
-              className="rounded-md bg-teal-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-400"
+              className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"
             >
               Mark taken
             </button>
@@ -134,7 +134,7 @@ export function DoseHistoryRow(props: {
               <button
                 onClick={markNotTaken}
                 disabled={loading}
-                className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-300 hover:bg-amber-500/20 disabled:opacity-50"
+                className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 hover:bg-amber-100 disabled:opacity-50"
               >
                 Mark not taken
               </button>
@@ -143,13 +143,13 @@ export function DoseHistoryRow(props: {
           <button
             onClick={remove}
             disabled={loading}
-            className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-sm text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 hover:bg-red-100 disabled:opacity-50"
           >
             Delete
           </button>
           <button
             onClick={close}
-            className="px-2 py-1.5 text-sm text-slate-400 hover:text-white"
+            className="px-2 py-1.5 text-sm text-slate-500 hover:text-slate-700"
           >
             Cancel
           </button>
@@ -162,18 +162,18 @@ export function DoseHistoryRow(props: {
             type="datetime-local"
             value={when}
             onChange={(e) => setWhen(e.target.value)}
-            className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
+            className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900"
           />
           <button
             onClick={mode === "take" ? saveTake : saveEdit}
             disabled={loading}
-            className="rounded-md bg-teal-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-400 disabled:opacity-50"
+            className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-50"
           >
             {loading ? "Saving…" : mode === "take" ? "Mark taken" : "Save time"}
           </button>
           <button
             onClick={close}
-            className="px-2 py-1.5 text-sm text-slate-400 hover:text-white"
+            className="px-2 py-1.5 text-sm text-slate-500 hover:text-slate-700"
           >
             Cancel
           </button>
@@ -181,7 +181,7 @@ export function DoseHistoryRow(props: {
       )}
 
       {!menu && !mode && (
-        <p className="mt-1 text-[11px] text-slate-600">Long-press for options</p>
+        <p className="mt-1 text-[11px] text-slate-400">Long-press for options</p>
       )}
     </li>
   );

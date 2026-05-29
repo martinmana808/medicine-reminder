@@ -10,11 +10,13 @@ export default async function HistoryPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">History</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        History
+      </h1>
       {doses.length === 0 ? (
-        <p className="text-slate-400">No doses recorded yet.</p>
+        <p className="text-slate-500">No doses recorded yet.</p>
       ) : (
-        <ul className="divide-y divide-slate-800 rounded-xl border border-slate-800 bg-slate-900/50">
+        <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white shadow-sm">
           {doses.map((d) => (
             <DoseHistoryRow
               key={d.id}

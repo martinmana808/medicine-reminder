@@ -25,10 +25,12 @@ export default async function EditPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/" className="text-slate-400 hover:text-white">
+        <Link href="/" className="text-slate-400 hover:text-slate-700">
           ←
         </Link>
-        <h1 className="text-xl font-semibold">Edit medicine</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          Edit medicine
+        </h1>
       </div>
       <MedicineForm
         initial={{
@@ -42,8 +44,10 @@ export default async function EditPage({
         }}
       />
 
-      <div className="border-t border-slate-800 pt-6">
-        <p className="text-sm font-medium text-slate-400 mb-2">Danger zone</p>
+      <div className="border-t border-slate-200 pt-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Danger zone
+        </p>
         <DeleteButton medicineId={med.id} />
       </div>
     </div>

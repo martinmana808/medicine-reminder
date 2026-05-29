@@ -82,15 +82,17 @@ export default async function Home() {
 
   if (meds.length === 0) {
     return (
-      <div className="text-center py-16">
-        <p className="text-5xl mb-4">💊</p>
-        <h1 className="text-xl font-semibold mb-2">No medicines yet</h1>
-        <p className="text-slate-400 mb-6">
+      <div className="text-center py-20">
+        <p className="text-6xl mb-4">💊</p>
+        <h1 className="text-xl font-semibold mb-2 text-slate-900">
+          No medicines yet
+        </h1>
+        <p className="text-slate-500 mb-6">
           Add your first medicine, then enable notifications in Settings.
         </p>
         <Link
           href="/add"
-          className="inline-block rounded-md bg-teal-500 px-5 py-2.5 font-medium text-white hover:bg-teal-400"
+          className="inline-block rounded-lg bg-teal-600 px-5 py-2.5 font-semibold text-white shadow-sm hover:bg-teal-700"
         >
           Add a medicine
         </Link>
@@ -99,46 +101,56 @@ export default async function Home() {
   }
 
   return (
-    <div className="space-y-8 pb-24">
+    <div className="space-y-8 pb-28">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Today</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          Today
+        </h1>
         <Link
           href="/add"
-          className="rounded-md bg-teal-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-400"
+          className="rounded-lg bg-teal-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"
         >
           + Add
         </Link>
       </div>
 
-      {/* Due / overdue — alarming */}
+      {/* Due / overdue — attention */}
       {dueCards.length > 0 && (
         <ul className="space-y-3">
           {dueCards.map(({ dose, color, behind }) => {
-            const styles =
+            const card =
               color === "red"
-                ? "border-red-500 bg-red-500/15"
-                : "border-amber-400 bg-amber-400/10";
+                ? "border-red-300 bg-red-50"
+                : "border-amber-300 bg-amber-50";
             const accent =
-              color === "red" ? "text-red-300" : "text-amber-300";
+              color === "red" ? "text-red-700" : "text-amber-700";
             return (
               <li
                 key={dose.id}
-                className={`rounded-xl border-2 p-4 ${styles}`}
+                className={`rounded-2xl border p-4 shadow-sm ${card}`}
               >
-                <div>
-                  <p className="font-semibold">{dose.medicineName}</p>
-                  <p className={`text-sm font-medium ${accent}`}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      color === "red" ? "bg-red-500" : "bg-amber-500"
+                    }`}
+                    aria-hidden
+                  />
+                  <p className={`text-xs font-semibold uppercase tracking-wide ${accent}`}>
                     {color === "red"
                       ? `${behind} doses behind`
                       : behind >= 2
                         ? "Also due"
                         : "Due now"}
                   </p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Was due {fmtDateTime(dose.scheduledAt, tz)} (
-                    {fmtRelative(dose.scheduledAt, now)})
-                  </p>
                 </div>
+                <p className="mt-1 text-lg font-semibold text-slate-900">
+                  {dose.medicineName}
+                </p>
+                <p className="text-sm text-slate-500">
+                  Was due {fmtDateTime(dose.scheduledAt, tz)} ·{" "}
+                  {fmtRelative(dose.scheduledAt, now)}
+                </p>
                 <div className="mt-3">
                   <DueDoseActions doseId={dose.id} color={color} />
                 </div>
@@ -156,31 +168,37 @@ export default async function Home() {
             return (
               <li
                 key={m.id}
-                className="rounded-xl border border-sky-900/60 bg-sky-950/30 p-4"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-slate-200">{m.name}</p>
-                    <p className="text-sm text-slate-500">
-                      {scheduleSummary(m)}
+                    <p className="text-lg font-semibold text-slate-900">
+                      {m.name}
                     </p>
+                    <p className="text-sm text-slate-500">{scheduleSummary(m)}</p>
                   </div>
                   <Link
                     href={`/edit/${m.id}`}
-                    className="text-xs text-slate-600 hover:text-teal-400"
+                    className="text-sm font-medium text-slate-400 hover:text-teal-600"
                   >
                     Edit
                   </Link>
                 </div>
 
-                <p className="mt-2 text-sm text-sky-200/80">
-                  Next: {fmtDateTime(m.nextDueAt, tz)}{" "}
-                  <span className="text-slate-500">
-                    ({fmtRelative(m.nextDueAt, now)})
-                  </span>
-                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-sky-400" aria-hidden />
+                  <p className="text-sm text-slate-600">
+                    Next{" "}
+                    <span className="font-medium text-slate-900">
+                      {fmtDateTime(m.nextDueAt, tz)}
+                    </span>{" "}
+                    <span className="text-slate-400">
+                      · {fmtRelative(m.nextDueAt, now)}
+                    </span>
+                  </p>
+                </div>
                 {dose?.status === "taken" && dose.takenAt && (
-                  <p className="text-xs text-slate-600">
+                  <p className="mt-0.5 pl-4 text-xs text-slate-400">
                     Last taken {fmtDateTime(dose.takenAt, tz)}
                   </p>
                 )}
@@ -196,24 +214,24 @@ export default async function Home() {
 
       {finished.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-slate-400 mb-2">
+          <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
             Completed
           </h2>
           <ul className="space-y-2">
             {finished.map((m) => (
               <li
                 key={m.id}
-                className="rounded-lg border border-slate-800 bg-slate-900/30 p-3 flex items-center justify-between"
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3"
               >
                 <div>
-                  <p className="text-slate-300">{m.name}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="font-medium text-slate-700">{m.name}</p>
+                  <p className="text-xs text-slate-400">
                     {scheduleSummary(m)} · course finished
                   </p>
                 </div>
                 <Link
                   href={`/edit/${m.id}`}
-                  className="text-xs text-slate-600 hover:text-teal-400"
+                  className="text-sm font-medium text-slate-400 hover:text-teal-600"
                 >
                   Edit
                 </Link>
@@ -224,19 +242,19 @@ export default async function Home() {
       )}
 
       {nextTake && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-800 bg-slate-900/95 backdrop-blur px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/90 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-1px_8px_rgba(15,23,42,0.06)] backdrop-blur">
           <div className="mx-auto max-w-xl text-sm">
             <div className="flex items-baseline gap-1.5 whitespace-nowrap">
               <span aria-hidden>⏰</span>
-              <span className="text-slate-400">Next take:</span>
-              <span className="text-slate-200">
+              <span className="font-medium text-slate-500">Next take:</span>
+              <span className="font-semibold text-slate-900">
                 {fmtClock(nextTake.when, tz, now)}
               </span>
-              <span className="text-slate-500">
+              <span className="text-slate-400">
                 · {fmtRelative(nextTake.when, now)}
               </span>
             </div>
-            <p className="mt-0.5 pl-6 font-medium text-slate-100 break-words">
+            <p className="mt-0.5 pl-6 font-medium text-slate-900 break-words">
               {renderNames(nextTake.names)}
             </p>
           </div>

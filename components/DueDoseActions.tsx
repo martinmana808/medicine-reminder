@@ -38,8 +38,8 @@ export function DueDoseActions({
 
   const takeBtn =
     color === "red"
-      ? "bg-red-500 text-white hover:bg-red-400"
-      : "bg-amber-400 text-slate-900 hover:bg-amber-300";
+      ? "bg-red-600 text-white hover:bg-red-700"
+      : "bg-amber-500 text-slate-900 hover:bg-amber-400";
 
   if (open) {
     return (
@@ -48,18 +48,18 @@ export function DueDoseActions({
           type="datetime-local"
           value={when}
           onChange={(e) => setWhen(e.target.value)}
-          className="rounded-md bg-slate-900/70 border border-slate-600 px-2 py-1.5 text-sm"
+          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900"
         />
         <button
           onClick={() => submit(new Date(when).toISOString())}
           disabled={loading}
-          className={`rounded-md px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${takeBtn}`}
+          className={`rounded-lg px-3 py-1.5 text-sm font-semibold shadow-sm disabled:opacity-50 ${takeBtn}`}
         >
           {loading ? "Saving…" : "Mark taken"}
         </button>
         <button
           onClick={() => setOpen(false)}
-          className="px-2 py-1.5 text-sm text-slate-300 hover:text-white"
+          className="px-2 py-1.5 text-sm text-slate-500 hover:text-slate-700"
         >
           Cancel
         </button>
@@ -72,7 +72,7 @@ export function DueDoseActions({
       <button
         onClick={() => submit()}
         disabled={loading}
-        className={`rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50 ${takeBtn}`}
+        className={`rounded-lg px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-50 ${takeBtn}`}
       >
         {loading ? "Saving…" : "✓ Mark taken"}
       </button>
@@ -81,7 +81,7 @@ export function DueDoseActions({
           setWhen(nowLocal());
           setOpen(true);
         }}
-        className="text-sm text-slate-300 hover:text-white underline-offset-2 hover:underline"
+        className="text-sm font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
       >
         at a time…
       </button>

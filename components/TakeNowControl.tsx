@@ -36,7 +36,7 @@ export function TakeNowControl({ medicineId }: { medicineId: number }) {
         <button
           onClick={() => submit(new Date().toISOString())}
           disabled={loading}
-          className="rounded-md border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50"
+          className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           {loading ? "Saving…" : "Taken now"}
         </button>
@@ -45,7 +45,7 @@ export function TakeNowControl({ medicineId }: { medicineId: number }) {
             setWhen(nowLocal());
             setOpen(true);
           }}
-          className="rounded-md px-2 py-1.5 text-sm text-slate-500 hover:text-slate-300"
+          className="rounded-md px-2 py-1.5 text-sm text-slate-400 hover:text-slate-600"
         >
           at a time…
         </button>
@@ -59,18 +59,18 @@ export function TakeNowControl({ medicineId }: { medicineId: number }) {
         type="datetime-local"
         value={when}
         onChange={(e) => setWhen(e.target.value)}
-        className="rounded-md bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm"
+        className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900"
       />
       <button
         onClick={() => submit(new Date(when).toISOString())}
         disabled={loading}
-        className="rounded-md bg-teal-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-400 disabled:opacity-50"
+        className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-50"
       >
         {loading ? "Saving…" : "Mark taken"}
       </button>
       <button
         onClick={() => setOpen(false)}
-        className="text-sm text-slate-400 hover:text-white"
+        className="text-sm text-slate-500 hover:text-slate-700"
       >
         Cancel
       </button>

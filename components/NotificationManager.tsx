@@ -71,26 +71,26 @@ export function NotificationManager() {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-400">
-        Status: <span className="font-medium text-slate-200">{status}</span>
+      <p className="text-sm text-slate-500">
+        Status: <span className="font-medium text-slate-900">{status}</span>
       </p>
       <div className="flex flex-wrap gap-2">
         <button
           onClick={enable}
           disabled={busy || status === "unsupported"}
-          className="rounded-md bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400 disabled:opacity-50"
+          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-50"
         >
           Enable notifications
         </button>
         <button
           onClick={sendTest}
           disabled={busy}
-          className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 disabled:opacity-50"
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           Send test notification
         </button>
       </div>
-      {message && <p className="text-sm text-slate-300">{message}</p>}
+      {message && <p className="text-sm text-slate-600">{message}</p>}
     </div>
   );
 }

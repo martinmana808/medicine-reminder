@@ -20,7 +20,7 @@ export function DeleteButton({ medicineId }: { medicineId: number }) {
     <button
       onClick={remove}
       disabled={loading}
-      className="w-full rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+      className="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
     >
       {loading ? "Deleting…" : "Delete medicine"}
     </button>

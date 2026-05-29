@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Meds",
   },
   icons: {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d9488",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -42,17 +42,19 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100">
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
         <ServiceWorkerRegister />
-        <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
+        <header className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
           <div className="mx-auto max-w-xl px-4 py-3 flex items-center gap-2">
-            <span className="text-lg font-semibold text-teal-400">💊 Meds</span>
+            <span className="text-lg font-semibold tracking-tight text-teal-600">
+              💊 Meds
+            </span>
             <nav className="ml-auto flex gap-1 text-sm">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                  className="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
                 >
                   {item.label}
                 </Link>

@@ -38,7 +38,7 @@ export function TimezoneForm({ current }: { current: string }) {
         <select
           value={tz}
           onChange={(e) => setTz(e.target.value)}
-          className="flex-1 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none"
+          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none"
         >
           {zones.map((z) => (
             <option key={z} value={z}>
@@ -49,18 +49,18 @@ export function TimezoneForm({ current }: { current: string }) {
         <button
           onClick={save}
           disabled={saving}
-          className="rounded-md bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400 disabled:opacity-50"
+          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-50"
         >
           Save
         </button>
       </div>
       <button
         onClick={useDeviceZone}
-        className="text-xs text-teal-400 hover:underline"
+        className="text-xs font-medium text-teal-600 hover:underline"
       >
         Use this device&apos;s timezone
       </button>
-      {message && <p className="text-sm text-slate-300">{message}</p>}
+      {message && <p className="text-sm text-slate-600">{message}</p>}
     </div>
   );
 }
