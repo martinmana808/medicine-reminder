@@ -1,65 +1,124 @@
-import Image from "next/image";
+import Link from "next/link";
+import { latestDosePerMedicine, listMedicines, getTimezone } from "@/lib/repo";
+import { fmtDateTime, fmtRelative, scheduleSummary } from "@/lib/format";
+import { TakeButton } from "@/components/TakeButton";
+import { DeleteButton } from "@/components/DeleteButton";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [meds, tz, latest] = await Promise.all([
+    listMedicines(),
+    getTimezone(),
+    latestDosePerMedicine(),
+  ]);
+  const now = new Date();
+  const active = meds.filter((m) => m.active);
+  const finished = meds.filter((m) => !m.active);
+
+  if (meds.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-5xl mb-4">💊</p>
+        <h1 className="text-xl font-semibold mb-2">No medicines yet</h1>
+        <p className="text-slate-400 mb-6">
+          Add your first medicine, then enable notifications in Settings.
+        </p>
+        <Link
+          href="/add"
+          className="inline-block rounded-md bg-teal-500 px-5 py-2.5 font-medium text-white hover:bg-teal-400"
+        >
+          Add a medicine
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Today</h1>
+        <Link
+          href="/add"
+          className="rounded-md bg-teal-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-400"
+        >
+          + Add
+        </Link>
+      </div>
+
+      <ul className="space-y-3">
+        {active.map((m) => {
+          const dose = latest.get(m.id);
+          const isDue =
+            dose?.status === "due" &&
+            !!m.nextDueAt &&
+            new Date(dose.scheduledAt) <= now;
+          return (
+            <li
+              key={m.id}
+              className={`rounded-xl border p-4 ${
+                isDue
+                  ? "border-teal-500 bg-teal-500/10"
+                  : "border-slate-800 bg-slate-900/50"
+              }`}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <div>
+                <p className="font-semibold">{m.name}</p>
+                <p className="text-sm text-slate-400">{scheduleSummary(m)}</p>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <div className="text-sm">
+                  {isDue ? (
+                    <span className="font-medium text-teal-300">Due now</span>
+                  ) : (
+                    <span className="text-slate-400">
+                      Next: {fmtDateTime(m.nextDueAt, tz)}{" "}
+                      <span className="text-slate-500">
+                        ({fmtRelative(m.nextDueAt, now)})
+                      </span>
+                    </span>
+                  )}
+                  {dose?.status === "taken" && dose.takenAt && (
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Last taken {fmtRelative(dose.takenAt, now)}
+                    </p>
+                  )}
+                </div>
+                {isDue && dose && <TakeButton doseId={dose.id} />}
+              </div>
+
+              <div className="mt-2 flex justify-end">
+                <DeleteButton medicineId={m.id} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {finished.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-slate-400 mb-2">
+            Completed
+          </h2>
+          <ul className="space-y-2">
+            {finished.map((m) => (
+              <li
+                key={m.id}
+                className="rounded-lg border border-slate-800 bg-slate-900/30 p-3 flex items-center justify-between"
+              >
+                <div>
+                  <p className="text-slate-300">{m.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {scheduleSummary(m)} · course finished
+                  </p>
+                </div>
+                <DeleteButton medicineId={m.id} />
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      )}
     </div>
   );
 }

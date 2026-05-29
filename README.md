@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💊 Medicine Reminder
 
-## Getting Started
+A personal, installable PWA that sends push notifications when it's time to take a
+medicine. Supports interval courses ("every 8h for 7 days"), fixed daily times, and
+re-anchors interval schedules when you mark a dose **Taken**. Free to host and run.
 
-First, run the development server:
+See the design spec: [`docs/superpowers/specs/2026-05-29-medicine-reminder-design.md`](docs/superpowers/specs/2026-05-29-medicine-reminder-design.md).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Next.js (App Router) · Web Push (VAPID) · Neon Postgres · Vercel · external 1-min cron.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Install deps** (already done if you scaffolded): `npm install`
+2. **Database** — create a free Neon Postgres database (Vercel Marketplace or
+   neon.tech) and put its connection string in `.env.local` as `DATABASE_URL`.
+3. **VAPID keys** — already generated into `.env.local`. To regenerate:
+   `npx web-push generate-vapid-keys` (set both `VAPID_PUBLIC_KEY` and
+   `NEXT_PUBLIC_VAPID_PUBLIC_KEY` to the public key).
+4. **Migrate**: `npm run migrate`
+5. **Run**: `npm run dev`, open http://localhost:3000
 
-## Learn More
+> Push notifications require HTTPS (or `localhost`). To test push on your phone,
+> deploy first (Vercel gives you HTTPS).
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy (all free tiers)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push this repo to GitHub and import it into **Vercel** (Hobby plan).
+2. Add a **Neon** database from the Vercel Marketplace (sets `DATABASE_URL`).
+3. In Vercel project settings → Environment Variables, add:
+   `VAPID_PUBLIC_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+   `VAPID_SUBJECT`, `CRON_SECRET` (copy from `.env.local`).
+4. Deploy, then run the migration against the production DB:
+   `DATABASE_URL="<prod url>" npm run migrate`
+5. **Heartbeat:** create a free job at [cron-job.org](https://cron-job.org) that
+   GETs `https://<your-app>.vercel.app/api/cron?secret=<CRON_SECRET>` every minute.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Use it
 
-## Deploy on Vercel
+1. Open the app on your phone and **Add to Home Screen** (install the PWA).
+2. Open it from the home screen → **Settings → Enable notifications**.
+3. Tap **Send test notification** to confirm push works.
+4. Add medicines. Reminders fire at each scheduled time; tap **Taken** on the
+   notification (or in the app) to log the dose and re-anchor interval schedules.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — dev server
+- `npm run build` / `npm start` — production build / serve
+- `npm test` — Vitest (scheduling logic)
+- `npm run migrate` — apply `lib/schema.sql`
+- `npm run gen:icons` — regenerate app icons
+
+## Notes / v1 scope
+
+- Single user, no authentication. The `/api/cron` endpoint is protected by
+  `CRON_SECRET`.
+- To change a medicine, delete it and add it again (no in-place edit yet).
+- **Snooze** reschedules the reminder 10 minutes out.
