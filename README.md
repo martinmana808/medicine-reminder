@@ -11,8 +11,10 @@ See the design spec: [`docs/superpowers/specs/2026-05-29-medicine-reminder-desig
 **https://medicine-reminder-pink.vercel.app**
 
 Deployed on Vercel with a Neon Postgres database. The reminder heartbeat runs via
-GitHub Actions (`.github/workflows/cron.yml`, every 5 minutes). To enable push
-notifications, open the URL on your phone, **Add to Home Screen**, then
+**Upstash QStash** (a reliable managed scheduler, every 5 minutes) which calls
+`/api/cron` with the secret forwarded as the `X-Cron-Secret` header. A GitHub
+Actions workflow exists as a secondary backstop. To enable push notifications,
+open the URL on your phone, **Add to Home Screen**, then
 **Settings → Enable notifications**.
 
 ## Stack
