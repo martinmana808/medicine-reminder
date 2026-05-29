@@ -125,7 +125,7 @@ export default async function Home() {
             return (
               <li
                 key={m.id}
-                className="rounded-xl border border-slate-800 bg-slate-900/40 p-4"
+                className="rounded-xl border border-sky-900/60 bg-sky-950/30 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -142,9 +142,9 @@ export default async function Home() {
                   </Link>
                 </div>
 
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-sky-200/80">
                   Next: {fmtDateTime(m.nextDueAt, tz)}{" "}
-                  <span className="text-slate-600">
+                  <span className="text-slate-500">
                     ({fmtRelative(m.nextDueAt, now)})
                   </span>
                 </p>
