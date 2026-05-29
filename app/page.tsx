@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { latestDosePerMedicine, listMedicines, getTimezone } from "@/lib/repo";
 import { fmtDateTime, fmtRelative, scheduleSummary } from "@/lib/format";
-import { TakeButton } from "@/components/TakeButton";
+import { TakeNowControl } from "@/components/TakeNowControl";
 import { DeleteButton } from "@/components/DeleteButton";
 
 export const dynamic = "force-dynamic";
@@ -75,25 +75,27 @@ export default async function Home() {
                 </Link>
               </div>
 
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <div className="text-sm">
-                  {isDue ? (
-                    <span className="font-medium text-teal-300">Due now</span>
-                  ) : (
-                    <span className="text-slate-400">
-                      Next: {fmtDateTime(m.nextDueAt, tz)}{" "}
-                      <span className="text-slate-500">
-                        ({fmtRelative(m.nextDueAt, now)})
-                      </span>
+              <div className="mt-3 text-sm">
+                {isDue ? (
+                  <span className="font-medium text-teal-300">Due now</span>
+                ) : (
+                  <span className="text-slate-400">
+                    Next: {fmtDateTime(m.nextDueAt, tz)}{" "}
+                    <span className="text-slate-500">
+                      ({fmtRelative(m.nextDueAt, now)})
                     </span>
-                  )}
-                  {dose?.status === "taken" && dose.takenAt && (
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Last taken {fmtRelative(dose.takenAt, now)}
-                    </p>
-                  )}
-                </div>
-                {isDue && dose && <TakeButton doseId={dose.id} />}
+                  </span>
+                )}
+                {dose?.status === "taken" && dose.takenAt && (
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Last taken {fmtDateTime(dose.takenAt, tz)} (
+                    {fmtRelative(dose.takenAt, now)})
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-3">
+                <TakeNowControl medicineId={m.id} />
               </div>
 
               <div className="mt-2 flex justify-end">

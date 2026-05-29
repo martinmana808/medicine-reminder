@@ -1,5 +1,6 @@
 import { getTimezone, listRecentDoses } from "@/lib/repo";
 import { fmtDateTime } from "@/lib/format";
+import { UndoButton } from "@/components/UndoButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "History" };
@@ -41,6 +42,7 @@ export default async function HistoryPage() {
                     {fmtDateTime(d.takenAt, tz)}
                   </p>
                 )}
+                {d.status === "taken" && <UndoButton doseId={d.id} />}
               </div>
             </li>
           ))}

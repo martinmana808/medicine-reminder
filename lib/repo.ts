@@ -274,6 +274,76 @@ export async function snoozeDose(
   return true;
 }
 
+/**
+ * Record that a medicine was taken at an arbitrary time and re-anchor its
+ * schedule from that moment. Resolves the latest pending "due" dose if one
+ * exists, otherwise logs a fresh "taken" dose. Interval meds get their next
+ * dose set to takenAt + interval; daily meds advance to the next clock time.
+ */
+export async function takeMedicineAt(
+  medicineId: number,
+  takenAt: Date,
+): Promise<boolean> {
+  const med = await getMedicine(medicineId);
+  if (!med) return false;
+  const tz = await getTimezone();
+
+  const pending = await query<DoseRow>(
+    "select * from doses where medicine_id = $1 and status = 'due' order by scheduled_at desc limit 1",
+    [medicineId],
+  );
+
+  if (pending.length > 0) {
+    await query(
+      "update doses set status = 'taken', taken_at = $2 where id = $1",
+      [pending[0].id, takenAt],
+    );
+  } else {
+    await query(
+      `insert into doses (medicine_id, scheduled_at, status, taken_at)
+       values ($1, $2, 'taken', $2)
+       on conflict (medicine_id, scheduled_at)
+       do update set status = 'taken', taken_at = excluded.taken_at`,
+      [medicineId, takenAt],
+    );
+  }
+
+  const newNextDue = advanceAfterFire(specOf(med), takenAt, tz);
+  const finished = isCourseFinished(newNextDue, med.endAt);
+  await query(
+    "update medicines set next_due_at = $2, active = $3 where id = $1",
+    [medicineId, finished ? null : newNextDue, !finished],
+  );
+  return true;
+}
+
+/**
+ * Undo a taken dose: mark it pending again and reset the medicine's next dose
+ * back to that dose's scheduled time (so it will remind again).
+ */
+export async function undoDose(doseId: number): Promise<boolean> {
+  const doseRows = await query<DoseRow>("select * from doses where id = $1", [
+    doseId,
+  ]);
+  if (doseRows.length === 0) return false;
+  const dose = toDose(doseRows[0]);
+
+  await query(
+    "update doses set status = 'due', taken_at = null where id = $1",
+    [doseId],
+  );
+
+  const med = await getMedicine(dose.medicineId);
+  if (med) {
+    const finished = isCourseFinished(dose.scheduledAt, med.endAt);
+    await query(
+      "update medicines set next_due_at = $2, active = $3 where id = $1",
+      [med.id, finished ? null : dose.scheduledAt, !finished],
+    );
+  }
+  return true;
+}
+
 // ---------- doses (history / status) ----------
 
 export async function listRecentDoses(
