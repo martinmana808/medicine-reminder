@@ -5,25 +5,50 @@ import { useState } from "react";
 
 type Type = "interval" | "daily";
 
-function defaultStart(): string {
-  // datetime-local format YYYY-MM-DDTHH:mm in local time
-  const d = new Date();
-  d.setSeconds(0, 0);
+export type MedicineFormInitial = {
+  id: number;
+  name: string;
+  type: Type;
+  intervalHours: number | null;
+  dailyTimes: string[] | null;
+  startAtIso: string;
+  durationDays: number | null;
+};
+
+function toDateTimeLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
     d.getHours(),
   )}:${pad(d.getMinutes())}`;
 }
 
-export function MedicineForm() {
+function defaultStart(): string {
+  const d = new Date();
+  d.setSeconds(0, 0);
+  return toDateTimeLocal(d);
+}
+
+export function MedicineForm({ initial }: { initial?: MedicineFormInitial }) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [type, setType] = useState<Type>("interval");
-  const [intervalHours, setIntervalHours] = useState("8");
-  const [dailyTimes, setDailyTimes] = useState("08:00");
-  const [startAt, setStartAt] = useState(defaultStart);
-  const [ongoing, setOngoing] = useState(false);
-  const [durationDays, setDurationDays] = useState("7");
+  const isEdit = !!initial;
+
+  const [name, setName] = useState(initial?.name ?? "");
+  const [type, setType] = useState<Type>(initial?.type ?? "interval");
+  const [intervalHours, setIntervalHours] = useState(
+    initial?.intervalHours != null ? String(initial.intervalHours) : "8",
+  );
+  const [dailyTimes, setDailyTimes] = useState(
+    initial?.dailyTimes?.join(", ") ?? "08:00",
+  );
+  const [startAt, setStartAt] = useState(
+    initial ? toDateTimeLocal(new Date(initial.startAtIso)) : defaultStart(),
+  );
+  const [ongoing, setOngoing] = useState(
+    initial ? initial.durationDays == null : false,
+  );
+  const [durationDays, setDurationDays] = useState(
+    initial?.durationDays != null ? String(initial.durationDays) : "7",
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -47,11 +72,14 @@ export function MedicineForm() {
       durationDays: ongoing ? null : Number(durationDays),
     };
 
-    const res = await fetch("/api/medicines", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const res = await fetch(
+      isEdit ? `/api/medicines/${initial!.id}` : "/api/medicines",
+      {
+        method: isEdit ? "PUT" : "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
     setSaving(false);
 
     if (!res.ok) {
@@ -63,7 +91,8 @@ export function MedicineForm() {
     router.refresh();
   }
 
-  const field = "w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none";
+  const field =
+    "w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none";
   const label = "block text-sm font-medium text-slate-300 mb-1";
 
   return (
@@ -166,7 +195,7 @@ export function MedicineForm() {
         disabled={saving}
         className="w-full rounded-md bg-teal-500 px-4 py-2.5 font-medium text-white hover:bg-teal-400 disabled:opacity-50"
       >
-        {saving ? "Saving…" : "Add medicine"}
+        {saving ? "Saving…" : isEdit ? "Save changes" : "Add medicine"}
       </button>
     </form>
   );

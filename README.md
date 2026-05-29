@@ -56,5 +56,5 @@ Next.js (App Router) · Web Push (VAPID) · Neon Postgres · Vercel · external 
 
 - Single user, no authentication. The `/api/cron` endpoint is protected by
   `CRON_SECRET`.
-- To change a medicine, delete it and add it again (no in-place edit yet).
+- Editing a medicine recomputes its next dose from the new schedule.
 - **Snooze** reschedules the reminder 10 minutes out.

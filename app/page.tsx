@@ -62,9 +62,17 @@ export default async function Home() {
                   : "border-slate-800 bg-slate-900/50"
               }`}
             >
-              <div>
-                <p className="font-semibold">{m.name}</p>
-                <p className="text-sm text-slate-400">{scheduleSummary(m)}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold">{m.name}</p>
+                  <p className="text-sm text-slate-400">{scheduleSummary(m)}</p>
+                </div>
+                <Link
+                  href={`/edit/${m.id}`}
+                  className="text-xs text-slate-500 hover:text-teal-400"
+                >
+                  Edit
+                </Link>
               </div>
 
               <div className="mt-3 flex items-center justify-between gap-3">
