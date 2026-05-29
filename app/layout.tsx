@@ -45,7 +45,7 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-slate-950 text-slate-100">
         <ServiceWorkerRegister />
-        <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur sticky top-0 z-10">
+        <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
           <div className="mx-auto max-w-xl px-4 py-3 flex items-center gap-2">
             <span className="text-lg font-semibold text-teal-400">💊 Meds</span>
             <nav className="ml-auto flex gap-1 text-sm">
@@ -61,7 +61,7 @@ export default function RootLayout({
             </nav>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6">
+        <main className="mx-auto w-full max-w-xl flex-1 pt-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           {children}
         </main>
       </body>
