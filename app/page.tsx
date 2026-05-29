@@ -5,7 +5,12 @@ import {
   listMedicines,
   getTimezone,
 } from "@/lib/repo";
-import { fmtDateTime, fmtRelative, scheduleSummary } from "@/lib/format";
+import {
+  fmtClock,
+  fmtDateTime,
+  fmtRelative,
+  scheduleSummary,
+} from "@/lib/format";
 import type { DoseWithMedicine } from "@/lib/types";
 import { DueDoseActions } from "@/components/DueDoseActions";
 import { TakeNowControl } from "@/components/TakeNowControl";
@@ -13,6 +18,12 @@ import { TakeNowControl } from "@/components/TakeNowControl";
 export const dynamic = "force-dynamic";
 
 type DueCard = { dose: DoseWithMedicine; color: "red" | "yellow"; behind: number };
+
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  if (names.length === 2) return `${names[0]} & ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
+}
 
 export default async function Home() {
   const [meds, outstanding, latest, tz] = await Promise.all([
@@ -48,6 +59,20 @@ export default async function Home() {
   const calmMeds = meds.filter((m) => m.active && !dueMedIds.has(m.id));
   const finished = meds.filter((m) => !m.active);
 
+  // Soonest upcoming dose across active meds, grouping meds due at the same minute.
+  const upcoming = meds
+    .filter((m) => m.active && m.nextDueAt)
+    .map((m) => ({ m, minute: Math.floor(m.nextDueAt!.getTime() / 60000) }));
+  let nextTake: { names: string[]; when: Date } | null = null;
+  if (upcoming.length > 0) {
+    const minMinute = Math.min(...upcoming.map((u) => u.minute));
+    const group = upcoming.filter((u) => u.minute === minMinute);
+    nextTake = {
+      names: group.map((u) => u.m.name),
+      when: group[0].m.nextDueAt!,
+    };
+  }
+
   if (meds.length === 0) {
     return (
       <div className="text-center py-16">
@@ -67,7 +92,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-24">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Today</h1>
         <Link
@@ -188,6 +213,24 @@ export default async function Home() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {nextTake && (
+        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-800 bg-slate-900/95 backdrop-blur px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto flex max-w-xl items-baseline gap-2 text-sm">
+            <span aria-hidden>⏰</span>
+            <span className="shrink-0 text-slate-400">Next take:</span>
+            <span className="truncate font-medium text-slate-100">
+              {joinNames(nextTake.names)}{" "}
+              <span className="font-normal text-slate-400">
+                at {fmtClock(nextTake.when, tz, now)}
+              </span>
+            </span>
+            <span className="ml-auto shrink-0 text-slate-500">
+              {fmtRelative(nextTake.when, now)}
+            </span>
+          </div>
         </div>
       )}
     </div>
