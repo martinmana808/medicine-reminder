@@ -7,7 +7,7 @@ import {
 } from "@/lib/repo";
 import { fmtDateTime, fmtRelative, scheduleSummary } from "@/lib/format";
 import type { DoseWithMedicine } from "@/lib/types";
-import { DueTakeButton } from "@/components/DueTakeButton";
+import { DueDoseActions } from "@/components/DueDoseActions";
 import { TakeNowControl } from "@/components/TakeNowControl";
 import { DeleteButton } from "@/components/DeleteButton";
 
@@ -94,22 +94,22 @@ export default async function Home() {
                 key={dose.id}
                 className={`rounded-xl border-2 p-4 ${styles}`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold">{dose.medicineName}</p>
-                    <p className={`text-sm font-medium ${accent}`}>
-                      {color === "red"
-                        ? `${behind} doses behind`
-                        : behind >= 2
-                          ? "Also due"
-                          : "Due now"}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Was due {fmtDateTime(dose.scheduledAt, tz)} (
-                      {fmtRelative(dose.scheduledAt, now)})
-                    </p>
-                  </div>
-                  <DueTakeButton doseId={dose.id} />
+                <div>
+                  <p className="font-semibold">{dose.medicineName}</p>
+                  <p className={`text-sm font-medium ${accent}`}>
+                    {color === "red"
+                      ? `${behind} doses behind`
+                      : behind >= 2
+                        ? "Also due"
+                        : "Due now"}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Was due {fmtDateTime(dose.scheduledAt, tz)} (
+                    {fmtRelative(dose.scheduledAt, now)})
+                  </p>
+                </div>
+                <div className="mt-3">
+                  <DueDoseActions doseId={dose.id} color={color} />
                 </div>
               </li>
             );
