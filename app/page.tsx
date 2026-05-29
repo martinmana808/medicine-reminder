@@ -101,7 +101,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="space-y-8 pb-28">
+    <div className="space-y-8 pb-36">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           Today
@@ -242,21 +242,27 @@ export default async function Home() {
       )}
 
       {nextTake && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/90 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-1px_8px_rgba(15,23,42,0.06)] backdrop-blur">
-          <div className="mx-auto max-w-xl text-sm">
-            <div className="flex items-baseline gap-1.5 whitespace-nowrap">
-              <span aria-hidden>⏰</span>
-              <span className="font-medium text-slate-500">Next take:</span>
-              <span className="font-semibold text-slate-900">
-                {fmtClock(nextTake.when, tz, now)}
-              </span>
-              <span className="text-slate-400">
-                · {fmtRelative(nextTake.when, now)}
-              </span>
+        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white px-4 pt-3.5 pb-[max(0.9rem,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_rgba(15,23,42,0.12)]">
+          <div className="mx-auto flex max-w-xl items-center gap-3">
+            <span className="text-3xl leading-none" aria-hidden>
+              ⏰
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-2 whitespace-nowrap">
+                <span className="text-xs font-bold uppercase tracking-wider text-teal-600">
+                  Next take
+                </span>
+                <span className="text-lg font-bold text-slate-900">
+                  {fmtClock(nextTake.when, tz, now)}
+                </span>
+                <span className="text-sm font-medium text-slate-400">
+                  · {fmtRelative(nextTake.when, now)}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[15px] font-semibold text-slate-700 break-words">
+                {renderNames(nextTake.names)}
+              </p>
             </div>
-            <p className="mt-0.5 pl-6 font-medium text-slate-900 break-words">
-              {renderNames(nextTake.names)}
-            </p>
           </div>
         </div>
       )}
