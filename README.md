@@ -6,6 +6,15 @@ re-anchors interval schedules when you mark a dose **Taken**. Free to host and r
 
 See the design spec: [`docs/superpowers/specs/2026-05-29-medicine-reminder-design.md`](docs/superpowers/specs/2026-05-29-medicine-reminder-design.md).
 
+## 🟢 Live
+
+**https://medicine-reminder-pink.vercel.app**
+
+Deployed on Vercel with a Neon Postgres database. The reminder heartbeat runs via
+GitHub Actions (`.github/workflows/cron.yml`, every 5 minutes). To enable push
+notifications, open the URL on your phone, **Add to Home Screen**, then
+**Settings → Enable notifications**.
+
 ## Stack
 
 Next.js (App Router) · Web Push (VAPID) · Neon Postgres · Vercel · external 1-min cron.
@@ -33,8 +42,11 @@ Next.js (App Router) · Web Push (VAPID) · Neon Postgres · Vercel · external 
    `VAPID_SUBJECT`, `CRON_SECRET` (copy from `.env.local`).
 4. Deploy, then run the migration against the production DB:
    `DATABASE_URL="<prod url>" npm run migrate`
-5. **Heartbeat:** create a free job at [cron-job.org](https://cron-job.org) that
-   GETs `https://<your-app>.vercel.app/api/cron?secret=<CRON_SECRET>` every minute.
+5. **Heartbeat:** already configured via GitHub Actions
+   (`.github/workflows/cron.yml`) using the `CRON_URL` and `CRON_SECRET` repo
+   secrets. For to-the-minute precision, optionally add a free
+   [cron-job.org](https://cron-job.org) job that GETs
+   `https://<your-app>.vercel.app/api/cron?secret=<CRON_SECRET>` every minute.
 
 ## Use it
 
