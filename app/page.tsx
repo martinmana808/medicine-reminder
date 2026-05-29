@@ -19,10 +19,17 @@ export const dynamic = "force-dynamic";
 
 type DueCard = { dose: DoseWithMedicine; color: "red" | "yellow"; behind: number };
 
-function joinNames(names: string[]): string {
-  if (names.length <= 1) return names[0] ?? "";
-  if (names.length === 2) return `${names[0]} & ${names[1]}`;
-  return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
+function renderNames(names: string[]) {
+  return names.map((n, i) => (
+    <span key={i}>
+      {i > 0 && (
+        <span className="text-slate-400">
+          {i === names.length - 1 ? " & " : ", "}
+        </span>
+      )}
+      {n}
+    </span>
+  ));
 }
 
 export default async function Home() {
@@ -218,22 +225,20 @@ export default async function Home() {
 
       {nextTake && (
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-800 bg-slate-900/95 backdrop-blur px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="mx-auto flex flex-col max-w-xl items-baseline gap-2 text-sm">
-            <div className='flex gap-2'>
-            <span aria-hidden>⏰</span>
-            <span className="shrink-0 text-slate-400">Next take:</span>
-            </div>
-            <div className='flex gap-2'>
-            <span className="truncate font-medium text-slate-100">
-              {joinNames(nextTake.names)}{" "}
-              <span className="font-normal text-slate-400">
+          <div className="mx-auto max-w-xl text-sm">
+            <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+              <span aria-hidden>⏰</span>
+              <span className="text-slate-400">Next take:</span>
+              <span className="text-slate-200">
                 at {fmtClock(nextTake.when, tz, now)}
               </span>
-            </span>
-            <span className="ml-auto shrink-0 text-slate-500">
-              {fmtRelative(nextTake.when, now)}
-            </span>
+              <span className="text-slate-500">
+                · {fmtRelative(nextTake.when, now)}
+              </span>
             </div>
+            <p className="mt-0.5 truncate pl-6 font-medium text-slate-100">
+              {renderNames(nextTake.names)}
+            </p>
           </div>
         </div>
       )}
