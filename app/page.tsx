@@ -9,7 +9,6 @@ import { fmtDateTime, fmtRelative, scheduleSummary } from "@/lib/format";
 import type { DoseWithMedicine } from "@/lib/types";
 import { DueDoseActions } from "@/components/DueDoseActions";
 import { TakeNowControl } from "@/components/TakeNowControl";
-import { DeleteButton } from "@/components/DeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -157,9 +156,6 @@ export default async function Home() {
                 <div className="mt-3">
                   <TakeNowControl medicineId={m.id} />
                 </div>
-                <div className="mt-2 flex justify-end">
-                  <DeleteButton medicineId={m.id} />
-                </div>
               </li>
             );
           })}
@@ -183,7 +179,12 @@ export default async function Home() {
                     {scheduleSummary(m)} · course finished
                   </p>
                 </div>
-                <DeleteButton medicineId={m.id} />
+                <Link
+                  href={`/edit/${m.id}`}
+                  className="text-xs text-slate-600 hover:text-teal-400"
+                >
+                  Edit
+                </Link>
               </li>
             ))}
           </ul>

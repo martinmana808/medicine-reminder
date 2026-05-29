@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMedicine } from "@/lib/repo";
 import { MedicineForm } from "@/components/MedicineForm";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit medicine" };
@@ -40,6 +41,11 @@ export default async function EditPage({
           durationDays,
         }}
       />
+
+      <div className="border-t border-slate-800 pt-6">
+        <p className="text-sm font-medium text-slate-400 mb-2">Danger zone</p>
+        <DeleteButton medicineId={med.id} />
+      </div>
     </div>
   );
 }
