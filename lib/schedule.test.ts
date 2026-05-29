@@ -49,17 +49,28 @@ describe("nextDailyOccurrence", () => {
 describe("firstDueAt", () => {
   it("interval: first dose is exactly the start time", () => {
     const start = new Date("2026-05-29T10:00:00Z");
-    expect(firstDueAt(interval(8), start, "UTC").toISOString()).toBe(
+    const now = new Date("2026-05-29T09:00:00Z");
+    expect(firstDueAt(interval(8), start, "UTC", now).toISOString()).toBe(
       "2026-05-29T10:00:00.000Z",
     );
   });
 
-  it("daily: first dose is the next clock time at or after start", () => {
+  it("daily (future start): first dose is the next clock time at or after start", () => {
     const start = new Date("2026-05-29T08:00:00Z");
+    const now = new Date("2026-05-29T00:00:00Z"); // before start
     // start lands exactly on 08:00, should be included
-    expect(firstDueAt(daily(["08:00"]), start, "UTC").toISOString()).toBe(
+    expect(firstDueAt(daily(["08:00"]), start, "UTC", now).toISOString()).toBe(
       "2026-05-29T08:00:00.000Z",
     );
+  });
+
+  it("daily (past start): never returns a time in the past — rolls to next future slot", () => {
+    // Editing a daily med at 16:00 with start earlier today must NOT land on 13:00 today.
+    const start = new Date("2026-05-29T13:00:00Z");
+    const now = new Date("2026-05-29T16:00:00Z");
+    expect(
+      firstDueAt(daily(["01:00", "13:00"]), start, "UTC", now).toISOString(),
+    ).toBe("2026-05-30T01:00:00.000Z");
   });
 });
 

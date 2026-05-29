@@ -48,11 +48,26 @@ export function nextDailyOccurrence(
     .toJSDate();
 }
 
-/** Initial `next_due_at` for a newly created medicine. */
-export function firstDueAt(spec: ScheduleSpec, startAt: Date, tz: string): Date {
+/**
+ * Initial `next_due_at` for a newly created/edited medicine.
+ *
+ * Interval meds anchor on their start time. Daily meds use the next clock
+ * occurrence after the later of `startAt` and `now` — so editing a daily med in
+ * the afternoon never produces a `next_due_at` in the past (e.g. "today 1 PM"
+ * when it's already 4 PM); it lands on the next future slot instead.
+ */
+export function firstDueAt(
+  spec: ScheduleSpec,
+  startAt: Date,
+  tz: string,
+  now: Date,
+): Date {
   if (spec.type === "interval") return startAt;
-  // Include an exact match on startAt by looking one ms earlier.
-  return nextDailyOccurrence(new Date(startAt.getTime() - 1), spec.dailyTimes!, tz);
+  const anchor =
+    startAt.getTime() > now.getTime()
+      ? new Date(startAt.getTime() - 1) // future start: include an exact match
+      : now; // past/now start: next slot strictly after now
+  return nextDailyOccurrence(anchor, spec.dailyTimes!, tz);
 }
 
 /** `next_due_at` after a due dose has fired (regardless of whether it was taken). */

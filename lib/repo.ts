@@ -120,7 +120,7 @@ export async function createMedicine(
     intervalHours: input.intervalHours,
     dailyTimes: input.dailyTimes,
   };
-  const nextDue = firstDueAt(spec, input.startAt, tz);
+  const nextDue = firstDueAt(spec, input.startAt, tz, new Date());
   const endAt =
     input.durationDays === null
       ? null
@@ -155,7 +155,7 @@ export async function updateMedicine(
     intervalHours: input.intervalHours,
     dailyTimes: input.dailyTimes,
   };
-  const nextDue = firstDueAt(spec, input.startAt, tz);
+  const nextDue = firstDueAt(spec, input.startAt, tz, new Date());
   const endAt =
     input.durationDays === null
       ? null

@@ -33,7 +33,6 @@ export const viewport: Viewport = {
 
 const navItems = [
   { href: "/", label: "Today" },
-  { href: "/add", label: "Add" },
   { href: "/history", label: "History" },
   { href: "/settings", label: "Settings" },
 ];

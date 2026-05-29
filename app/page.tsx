@@ -218,9 +218,12 @@ export default async function Home() {
 
       {nextTake && (
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-800 bg-slate-900/95 backdrop-blur px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="mx-auto flex max-w-xl items-baseline gap-2 text-sm">
+          <div className="mx-auto flex flex-col max-w-xl items-baseline gap-2 text-sm">
+            <div className='flex gap-2'>
             <span aria-hidden>⏰</span>
             <span className="shrink-0 text-slate-400">Next take:</span>
+            </div>
+            <div className='flex gap-2'>
             <span className="truncate font-medium text-slate-100">
               {joinNames(nextTake.names)}{" "}
               <span className="font-normal text-slate-400">
@@ -230,6 +233,7 @@ export default async function Home() {
             <span className="ml-auto shrink-0 text-slate-500">
               {fmtRelative(nextTake.when, now)}
             </span>
+            </div>
           </div>
         </div>
       )}
