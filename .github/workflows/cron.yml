@@ -1,0 +1,23 @@
+name: Medicine reminder heartbeat
+
+# Pings the app's /api/cron endpoint so due doses fire as push notifications.
+# GitHub Actions' minimum schedule is every 5 minutes (and can run a few minutes
+# late). For to-the-minute precision, add a free cron-job.org job instead.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit cron endpoint
+        run: |
+          code=$(curl -s -o /tmp/cron.out -w "%{http_code}" \
+            "${{ secrets.CRON_URL }}?secret=${{ secrets.CRON_SECRET }}")
+          echo "HTTP $code"
+          cat /tmp/cron.out
+          echo
+          test "$code" = "200"
