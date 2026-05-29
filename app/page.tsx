@@ -24,7 +24,7 @@ function renderNames(names: string[]) {
     <span key={i}>
       {i > 0 && (
         <span className="text-slate-400">
-          {i === names.length - 1 ? " & " : ", "}
+          {i === names.length - 1 ? " and " : ", "}
         </span>
       )}
       {n}
@@ -230,13 +230,13 @@ export default async function Home() {
               <span aria-hidden>⏰</span>
               <span className="text-slate-400">Next take:</span>
               <span className="text-slate-200">
-                at {fmtClock(nextTake.when, tz, now)}
+                {fmtClock(nextTake.when, tz, now)}
               </span>
               <span className="text-slate-500">
                 · {fmtRelative(nextTake.when, now)}
               </span>
             </div>
-            <p className="mt-0.5 truncate pl-6 font-medium text-slate-100">
+            <p className="mt-0.5 pl-6 font-medium text-slate-100 break-words">
               {renderNames(nextTake.names)}
             </p>
           </div>
