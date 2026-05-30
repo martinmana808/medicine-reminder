@@ -244,15 +244,13 @@ export default async function Home() {
       {nextTake && (
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white px-4 pt-3.5 pb-[max(0.9rem,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_rgba(15,23,42,0.12)]">
           <div className="mx-auto flex max-w-xl items-center gap-3">
-            <span className="text-3xl leading-none" aria-hidden>
-              ⏰
-            </span>
+
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2 whitespace-nowrap">
                 <span className="text-xs font-bold uppercase tracking-wider text-teal-600">
                   Next take
                 </span>
-                <span className="text-lg font-bold text-slate-900">
+                <span className="text-sm font-bold text-slate-900">
                   {fmtClock(nextTake.when, tz, now)}
                 </span>
                 <span className="text-sm font-medium text-slate-400">
