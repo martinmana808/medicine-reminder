@@ -298,25 +298,32 @@ export async function takeMedicineAt(
     [medicineId],
   );
 
+  // The scheduled slot this take fulfills: an outstanding due dose if one exists,
+  // otherwise the upcoming next_due slot (taking the upcoming dose early).
+  const slot = pending.length > 0 ? pending[0].scheduled_at : (med.nextDueAt ?? takenAt);
+
   if (pending.length > 0) {
-    // Resolving a real scheduled dose — keep its 'scheduled' source.
     await query(
       "update doses set status = 'taken', taken_at = $2, prev_next_due_at = $3 where id = $1",
       [pending[0].id, takenAt, prevNextDue],
     );
   } else {
-    // Ad-hoc take with no pending dose — mark it 'manual' so undo removes it.
+    // Record the dose against its real scheduled slot (so it counts as that dose),
+    // logging the actual time taken.
     await query(
       `insert into doses (medicine_id, scheduled_at, status, taken_at, source, prev_next_due_at)
-       values ($1, $2, 'taken', $2, 'manual', $3)
+       values ($1, $2, 'taken', $3, 'scheduled', $4)
        on conflict (medicine_id, scheduled_at)
        do update set status = 'taken', taken_at = excluded.taken_at,
-                     source = 'manual', prev_next_due_at = excluded.prev_next_due_at`,
-      [medicineId, takenAt, prevNextDue],
+                     prev_next_due_at = excluded.prev_next_due_at`,
+      [medicineId, slot, takenAt, prevNextDue],
     );
   }
 
-  const newNextDue = advanceAfterFire(specOf(med), takenAt, tz);
+  // Interval meds re-anchor from the moment taken; daily meds advance to the next
+  // clock slot AFTER the slot just taken (so taking the 1 PM dose early jumps to 1 AM).
+  const anchor = med.type === "interval" ? takenAt : slot;
+  const newNextDue = advanceAfterFire(specOf(med), anchor, tz);
   const finished = isCourseFinished(newNextDue, med.endAt);
   await query(
     "update medicines set next_due_at = $2, active = $3 where id = $1",
