@@ -5,6 +5,8 @@ create table if not exists settings (
 );
 insert into settings (id, timezone) values (1, 'UTC') on conflict (id) do nothing;
 
+alter table settings add column if not exists language text not null default 'en';
+
 create table if not exists medicines (
   id serial primary key,
   name text not null,

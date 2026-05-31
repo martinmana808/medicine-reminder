@@ -2,8 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { t, type Lang } from "@/lib/i18n";
 
-export function TimezoneForm({ current }: { current: string }) {
+export function TimezoneForm({
+  current,
+  lang,
+}: {
+  current: string;
+  lang: Lang;
+}) {
   const router = useRouter();
   const [tz, setTz] = useState(current);
   const [saving, setSaving] = useState(false);
@@ -23,7 +30,7 @@ export function TimezoneForm({ current }: { current: string }) {
       body: JSON.stringify({ timezone: tz }),
     });
     setSaving(false);
-    setMessage(res.ok ? "Saved ✓" : "Could not save timezone.");
+    setMessage(res.ok ? t(lang, "settings.saved") : t(lang, "settings.tzFailed"));
     if (res.ok) router.refresh();
   }
 
@@ -51,14 +58,14 @@ export function TimezoneForm({ current }: { current: string }) {
           disabled={saving}
           className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-50"
         >
-          Save
+          {t(lang, "settings.save")}
         </button>
       </div>
       <button
         onClick={useDeviceZone}
         className="text-xs font-medium text-teal-600 hover:underline"
       >
-        Use this device&apos;s timezone
+        {t(lang, "settings.useDeviceTz")}
       </button>
       {message && <p className="text-sm text-slate-600">{message}</p>}
     </div>

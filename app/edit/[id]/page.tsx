@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getMedicine } from "@/lib/repo";
+import { getLanguage, getMedicine } from "@/lib/repo";
+import { t } from "@/lib/i18n";
 import { MedicineForm } from "@/components/MedicineForm";
 import { DeleteButton } from "@/components/DeleteButton";
 import { UndoLastTakeButton } from "@/components/UndoLastTakeButton";
@@ -16,7 +17,10 @@ export default async function EditPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const med = await getMedicine(Number(id));
+  const [med, lang] = await Promise.all([
+    getMedicine(Number(id)),
+    getLanguage(),
+  ]);
   if (!med) notFound();
 
   const durationDays = med.endAt
@@ -30,10 +34,11 @@ export default async function EditPage({
           ←
         </Link>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Edit medicine
+          {t(lang, "edit.title")}
         </h1>
       </div>
       <MedicineForm
+        lang={lang}
         initial={{
           id: med.id,
           name: med.name,
@@ -47,20 +52,19 @@ export default async function EditPage({
 
       <div className="border-t border-slate-200 pt-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Corrections
+          {t(lang, "edit.corrections")}
         </p>
         <p className="mb-2 text-sm text-slate-500">
-          Tapped &quot;Taken&quot; by accident? This reverts your most recent take
-          and recalculates the next dose.
+          {t(lang, "edit.correctionsBody")}
         </p>
-        <UndoLastTakeButton medicineId={med.id} />
+        <UndoLastTakeButton medicineId={med.id} lang={lang} />
       </div>
 
       <div className="border-t border-slate-200 pt-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Danger zone
+          {t(lang, "edit.dangerZone")}
         </p>
-        <DeleteButton medicineId={med.id} />
+        <DeleteButton medicineId={med.id} lang={lang} />
       </div>
     </div>
   );

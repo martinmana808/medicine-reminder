@@ -24,8 +24,8 @@ self.addEventListener("push", (event) => {
     data: { doseId: doseId, url: data.url || "/" },
     actions: doseId
       ? [
-          { action: "taken", title: "✓ Taken" },
-          { action: "snooze", title: "Snooze 10m" },
+          { action: "taken", title: data.takenLabel || "✓ Taken" },
+          { action: "snooze", title: data.snoozeLabel || "Snooze 10m" },
         ]
       : [],
   };

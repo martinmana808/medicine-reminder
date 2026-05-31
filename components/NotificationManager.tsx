@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { t, type Lang } from "@/lib/i18n";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -11,7 +12,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return arr;
 }
 
-export function NotificationManager() {
+export function NotificationManager({ lang }: { lang: Lang }) {
   const [status, setStatus] = useState<string>("checking…");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -32,13 +33,13 @@ export function NotificationManager() {
       const permission = await Notification.requestPermission();
       setStatus(permission);
       if (permission !== "granted") {
-        setMessage("Permission denied — enable notifications in your settings.");
+        setMessage(t(lang, "settings.permDenied"));
         return;
       }
       const reg = await navigator.serviceWorker.ready;
       const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!key) {
-        setMessage("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY.");
+        setMessage(t(lang, "settings.missingKey"));
         return;
       }
       const sub = await reg.pushManager.subscribe({
@@ -50,9 +51,11 @@ export function NotificationManager() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(sub),
       });
-      setMessage(res.ok ? "Notifications enabled on this device ✓" : "Failed to save subscription.");
+      setMessage(
+        res.ok ? t(lang, "settings.enabled") : t(lang, "settings.failedSave"),
+      );
     } catch (err) {
-      setMessage("Could not enable: " + (err as Error).message);
+      setMessage(t(lang, "settings.couldNotEnable", { err: (err as Error).message }));
     } finally {
       setBusy(false);
     }
@@ -64,7 +67,9 @@ export function NotificationManager() {
     const res = await fetch("/api/test-notification", { method: "POST" });
     const data = await res.json().catch(() => ({}));
     setMessage(
-      res.ok ? `Test sent to ${data.sent ?? 0} device(s).` : "Failed to send test.",
+      res.ok
+        ? t(lang, "settings.testSent", { n: data.sent ?? 0 })
+        : t(lang, "settings.testFailed"),
     );
     setBusy(false);
   }
@@ -72,7 +77,8 @@ export function NotificationManager() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-500">
-        Status: <span className="font-medium text-slate-900">{status}</span>
+        {t(lang, "settings.status")}:{" "}
+        <span className="font-medium text-slate-900">{status}</span>
       </p>
       <div className="flex flex-wrap gap-2">
         <button
@@ -80,14 +86,14 @@ export function NotificationManager() {
           disabled={busy || status === "unsupported"}
           className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-50"
         >
-          Enable notifications
+          {t(lang, "settings.enable")}
         </button>
         <button
           onClick={sendTest}
           disabled={busy}
           className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
-          Send test notification
+          {t(lang, "settings.sendTest")}
         </button>
       </div>
       {message && <p className="text-sm text-slate-600">{message}</p>}

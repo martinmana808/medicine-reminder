@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { t, type Lang } from "@/lib/i18n";
 
 type Type = "interval" | "daily";
 
@@ -28,7 +29,13 @@ function defaultStart(): string {
   return toDateTimeLocal(d);
 }
 
-export function MedicineForm({ initial }: { initial?: MedicineFormInitial }) {
+export function MedicineForm({
+  initial,
+  lang,
+}: {
+  initial?: MedicineFormInitial;
+  lang: Lang;
+}) {
   const router = useRouter();
   const isEdit = !!initial;
 
@@ -83,8 +90,7 @@ export function MedicineForm({ initial }: { initial?: MedicineFormInitial }) {
     setSaving(false);
 
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.issues?.[0]?.message ?? "Could not save medicine.");
+      setError(t(lang, "form.error"));
       return;
     }
     router.push("/");
@@ -98,31 +104,33 @@ export function MedicineForm({ initial }: { initial?: MedicineFormInitial }) {
   return (
     <form onSubmit={submit} className="space-y-5">
       <div>
-        <label className={label}>Medicine name</label>
+        <label className={label}>{t(lang, "form.name")}</label>
         <input
           className={field}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Amoxicillin"
+          placeholder={t(lang, "form.namePlaceholder")}
           required
         />
       </div>
 
       <div>
-        <label className={label}>Schedule</label>
+        <label className={label}>{t(lang, "form.schedule")}</label>
         <div className="flex gap-2">
-          {(["interval", "daily"] as Type[]).map((t) => (
+          {(["interval", "daily"] as Type[]).map((opt) => (
             <button
-              key={t}
+              key={opt}
               type="button"
-              onClick={() => setType(t)}
+              onClick={() => setType(opt)}
               className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium border ${
-                type === t
+                type === opt
                   ? "bg-teal-600 border-teal-600 text-white shadow-sm"
                   : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
               }`}
             >
-              {t === "interval" ? "Every X hours" : "Fixed daily times"}
+              {opt === "interval"
+                ? t(lang, "form.everyXHours")
+                : t(lang, "form.fixedDailyTimes")}
             </button>
           ))}
         </div>
@@ -130,7 +138,7 @@ export function MedicineForm({ initial }: { initial?: MedicineFormInitial }) {
 
       {type === "interval" ? (
         <div>
-          <label className={label}>Repeat every (hours)</label>
+          <label className={label}>{t(lang, "form.repeatEvery")}</label>
           <input
             className={field}
             type="number"
@@ -142,7 +150,7 @@ export function MedicineForm({ initial }: { initial?: MedicineFormInitial }) {
         </div>
       ) : (
         <div>
-          <label className={label}>Times (comma separated, HH:MM)</label>
+          <label className={label}>{t(lang, "form.times")}</label>
           <input
             className={field}
             value={dailyTimes}
@@ -154,7 +162,9 @@ export function MedicineForm({ initial }: { initial?: MedicineFormInitial }) {
 
       <div>
         <label className={label}>
-          {type === "interval" ? "First dose / start" : "Start from"}
+          {type === "interval"
+            ? t(lang, "form.firstDose")
+            : t(lang, "form.startFrom")}
         </label>
         <input
           className={field}
@@ -173,11 +183,11 @@ export function MedicineForm({ initial }: { initial?: MedicineFormInitial }) {
             onChange={(e) => setOngoing(e.target.checked)}
             className="accent-teal-600"
           />
-          Ongoing (no end date)
+          {t(lang, "form.ongoing")}
         </label>
         {!ongoing && (
           <div className="mt-2">
-            <label className={label}>Course length (days)</label>
+            <label className={label}>{t(lang, "form.courseLength")}</label>
             <input
               className={field}
               type="number"
@@ -196,7 +206,11 @@ export function MedicineForm({ initial }: { initial?: MedicineFormInitial }) {
         disabled={saving}
         className="w-full rounded-lg bg-teal-600 px-4 py-2.5 font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-50"
       >
-        {saving ? "Saving…" : isEdit ? "Save changes" : "Add medicine"}
+        {saving
+          ? t(lang, "common.saving")
+          : isEdit
+            ? t(lang, "form.saveChanges")
+            : t(lang, "form.addMedicine")}
       </button>
     </form>
   );

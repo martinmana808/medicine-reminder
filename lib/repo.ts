@@ -77,10 +77,14 @@ function specOf(m: Medicine): ScheduleSpec {
 // ---------- settings ----------
 
 export async function getTimezone(): Promise<string> {
-  const rows = await query<{ timezone: string }>(
-    "select timezone from settings where id = 1",
-  );
-  return rows[0]?.timezone ?? "UTC";
+  try {
+    const rows = await query<{ timezone: string }>(
+      "select timezone from settings where id = 1",
+    );
+    return rows[0]?.timezone ?? "UTC";
+  } catch {
+    return "UTC";
+  }
 }
 
 export async function setTimezone(timezone: string): Promise<void> {
@@ -89,6 +93,21 @@ export async function setTimezone(timezone: string): Promise<void> {
      on conflict (id) do update set timezone = excluded.timezone`,
     [timezone],
   );
+}
+
+export async function getLanguage(): Promise<"en" | "es"> {
+  try {
+    const rows = await query<{ language: string }>(
+      "select language from settings where id = 1",
+    );
+    return rows[0]?.language === "es" ? "es" : "en";
+  } catch {
+    return "en";
+  }
+}
+
+export async function setLanguage(language: "en" | "es"): Promise<void> {
+  await query("update settings set language = $1 where id = 1", [language]);
 }
 
 // ---------- medicines ----------

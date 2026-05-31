@@ -21,6 +21,8 @@ export interface PushPayload {
   body: string;
   doseId?: number;
   url?: string;
+  takenLabel?: string;
+  snoozeLabel?: string;
 }
 
 /** Send a payload to every stored subscription, pruning dead ones. */

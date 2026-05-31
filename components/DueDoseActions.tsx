@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { t, type Lang } from "@/lib/i18n";
 
 function nowLocal(): string {
   const d = new Date();
@@ -15,9 +16,11 @@ function nowLocal(): string {
 export function DueDoseActions({
   doseId,
   color,
+  lang,
 }: {
   doseId: number;
   color: "red" | "yellow";
+  lang: Lang;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -55,13 +58,13 @@ export function DueDoseActions({
           disabled={loading}
           className={`rounded-lg px-3 py-1.5 text-sm font-semibold shadow-sm disabled:opacity-50 ${takeBtn}`}
         >
-          {loading ? "Saving…" : "Mark taken"}
+          {loading ? t(lang, "common.saving") : t(lang, "action.markTakenShort")}
         </button>
         <button
           onClick={() => setOpen(false)}
           className="px-2 py-1.5 text-sm text-slate-500 hover:text-slate-700"
         >
-          Cancel
+          {t(lang, "common.cancel")}
         </button>
       </div>
     );
@@ -74,7 +77,7 @@ export function DueDoseActions({
         disabled={loading}
         className={`rounded-lg px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-50 ${takeBtn}`}
       >
-        {loading ? "Saving…" : "✓ Mark taken"}
+        {loading ? t(lang, "common.saving") : t(lang, "action.markTaken")}
       </button>
       <button
         onClick={() => {
@@ -83,7 +86,7 @@ export function DueDoseActions({
         }}
         className="text-sm font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
       >
-        at a time…
+        {t(lang, "action.atATime")}
       </button>
     </div>
   );

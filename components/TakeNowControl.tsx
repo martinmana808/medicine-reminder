@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { t, type Lang } from "@/lib/i18n";
 
 function nowLocal(): string {
   const d = new Date();
@@ -12,7 +13,13 @@ function nowLocal(): string {
   )}:${pad(d.getMinutes())}`;
 }
 
-export function TakeNowControl({ medicineId }: { medicineId: number }) {
+export function TakeNowControl({
+  medicineId,
+  lang,
+}: {
+  medicineId: number;
+  lang: Lang;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [when, setWhen] = useState(nowLocal);
@@ -38,7 +45,7 @@ export function TakeNowControl({ medicineId }: { medicineId: number }) {
           disabled={loading}
           className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
-          {loading ? "Saving…" : "Taken now"}
+          {loading ? t(lang, "common.saving") : t(lang, "action.takenNow")}
         </button>
         <button
           onClick={() => {
@@ -47,7 +54,7 @@ export function TakeNowControl({ medicineId }: { medicineId: number }) {
           }}
           className="rounded-md px-2 py-1.5 text-sm text-slate-400 hover:text-slate-600"
         >
-          at a time…
+          {t(lang, "action.atATime")}
         </button>
       </div>
     );
@@ -66,13 +73,13 @@ export function TakeNowControl({ medicineId }: { medicineId: number }) {
         disabled={loading}
         className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-50"
       >
-        {loading ? "Saving…" : "Mark taken"}
+        {loading ? t(lang, "common.saving") : t(lang, "action.markTakenShort")}
       </button>
       <button
         onClick={() => setOpen(false)}
         className="text-sm text-slate-500 hover:text-slate-700"
       >
-        Cancel
+        {t(lang, "common.cancel")}
       </button>
     </div>
   );

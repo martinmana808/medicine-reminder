@@ -3,6 +3,8 @@ import { Geist } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { getLanguage } from "@/lib/repo";
+import { t } from "@/lib/i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,23 +33,23 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-const navItems = [
-  { href: "/", label: "Today" },
-  { href: "/history", label: "History" },
-  { href: "/settings", label: "Settings" },
-];
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const lang = await getLanguage();
+  const navItems = [
+    { href: "/", label: t(lang, "nav.today") },
+    { href: "/history", label: t(lang, "nav.history") },
+    { href: "/settings", label: t(lang, "nav.settings") },
+  ];
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang={lang} className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
         <ServiceWorkerRegister />
         <header className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
           <div className="mx-auto max-w-xl px-4 py-3 flex items-center gap-2">
             <span className="text-lg font-semibold tracking-tight text-teal-600">
-              💊 Meds
+              {t(lang, "app.name")}
             </span>
             <nav className="ml-auto flex gap-1 text-sm">
               {navItems.map((item) => (

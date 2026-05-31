@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { t, type Lang } from "@/lib/i18n";
 
 function isoToLocal(iso: string): string {
   const d = new Date(iso);
@@ -30,7 +31,9 @@ export function DoseHistoryRow(props: {
   scheduledLabel: string;
   takenLabel: string | null;
   takenAtIso: string;
+  lang: Lang;
 }) {
+  const { lang } = props;
   const router = useRouter();
   const [menu, setMenu] = useState(false);
   const [mode, setMode] = useState<EditMode>(null);
@@ -58,7 +61,8 @@ export function DoseHistoryRow(props: {
   }
 
   async function remove() {
-    if (!confirm(`Delete this ${props.medicineName} dose?`)) return;
+    if (!confirm(t(lang, "history.confirmDelete", { name: props.medicineName })))
+      return;
     await call(`/api/doses/${props.id}`, { method: "DELETE" });
   }
   function markNotTaken() {
@@ -97,7 +101,7 @@ export function DoseHistoryRow(props: {
         <div>
           <p className="font-medium text-slate-900">{props.medicineName}</p>
           <p className="text-xs text-slate-500">
-            Scheduled {props.scheduledLabel}
+            {t(lang, "history.scheduled", { date: props.scheduledLabel })}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -106,7 +110,7 @@ export function DoseHistoryRow(props: {
               statusChip[props.status] ?? "bg-slate-100 text-slate-500"
             }`}
           >
-            {props.status}
+            {t(lang, `status.${props.status}`)}
           </span>
           {props.takenLabel && (
             <p className="text-xs text-slate-400">{props.takenLabel}</p>
@@ -124,19 +128,19 @@ export function DoseHistoryRow(props: {
               }}
               className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"
             >
-              Mark taken
+              {t(lang, "action.markTakenShort")}
             </button>
           ) : (
             <>
               <button onClick={() => setMode("edit")} className={btn}>
-                Edit time taken
+                {t(lang, "history.editTime")}
               </button>
               <button
                 onClick={markNotTaken}
                 disabled={loading}
                 className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 hover:bg-amber-100 disabled:opacity-50"
               >
-                Mark not taken
+                {t(lang, "history.markNotTaken")}
               </button>
             </>
           )}
@@ -145,13 +149,13 @@ export function DoseHistoryRow(props: {
             disabled={loading}
             className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 hover:bg-red-100 disabled:opacity-50"
           >
-            Delete
+            {t(lang, "history.delete")}
           </button>
           <button
             onClick={close}
             className="px-2 py-1.5 text-sm text-slate-500 hover:text-slate-700"
           >
-            Cancel
+            {t(lang, "common.cancel")}
           </button>
         </div>
       )}
@@ -169,19 +173,25 @@ export function DoseHistoryRow(props: {
             disabled={loading}
             className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-50"
           >
-            {loading ? "Saving…" : mode === "take" ? "Mark taken" : "Save time"}
+            {loading
+              ? t(lang, "common.saving")
+              : mode === "take"
+                ? t(lang, "action.markTakenShort")
+                : t(lang, "history.saveTime")}
           </button>
           <button
             onClick={close}
             className="px-2 py-1.5 text-sm text-slate-500 hover:text-slate-700"
           >
-            Cancel
+            {t(lang, "common.cancel")}
           </button>
         </div>
       )}
 
       {!menu && !mode && (
-        <p className="mt-1 text-[11px] text-slate-400">Long-press for options</p>
+        <p className="mt-1 text-[11px] text-slate-400">
+          {t(lang, "history.longPress")}
+        </p>
       )}
     </li>
   );

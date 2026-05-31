@@ -1,46 +1,54 @@
-import { getTimezone } from "@/lib/repo";
+import { getLanguage, getTimezone } from "@/lib/repo";
+import { t } from "@/lib/i18n";
 import { NotificationManager } from "@/components/NotificationManager";
 import { TimezoneForm } from "@/components/TimezoneForm";
+import { LanguageForm } from "@/components/LanguageForm";
 import { DebugDemo } from "@/components/DebugDemo";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
-  const tz = await getTimezone();
+  const [tz, lang] = await Promise.all([getTimezone(), getLanguage()]);
 
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-        Settings
+        {t(lang, "settings.title")}
       </h1>
 
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="font-semibold text-slate-900">Notifications</h2>
-        <p className="text-sm text-slate-500">
-          Install this app to your home screen, then enable notifications so
-          reminders arrive even when the app is closed.
-        </p>
-        <NotificationManager />
+        <h2 className="font-semibold text-slate-900">
+          {t(lang, "settings.language")}
+        </h2>
+        <p className="text-sm text-slate-500">{t(lang, "settings.languageBody")}</p>
+        <LanguageForm current={lang} />
       </section>
 
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="font-semibold text-slate-900">Timezone</h2>
+        <h2 className="font-semibold text-slate-900">
+          {t(lang, "settings.notifications")}
+        </h2>
         <p className="text-sm text-slate-500">
-          Used to interpret daily times like &quot;08:00&quot;.
+          {t(lang, "settings.notificationsBody")}
         </p>
-        <TimezoneForm current={tz} />
+        <NotificationManager lang={lang} />
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="font-semibold text-slate-900">
+          {t(lang, "settings.timezone")}
+        </h2>
+        <p className="text-sm text-slate-500">{t(lang, "settings.timezoneBody")}</p>
+        <TimezoneForm current={tz} lang={lang} />
       </section>
 
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Debug
+          {t(lang, "settings.debug")}
         </h2>
-        <p className="text-sm text-slate-500">
-          Seed demo cards to preview the due states: one yellow (1 dose due) and
-          one red (2 doses behind). Clear them when done.
-        </p>
-        <DebugDemo />
+        <p className="text-sm text-slate-500">{t(lang, "settings.debugBody")}</p>
+        <DebugDemo lang={lang} />
       </section>
     </div>
   );
