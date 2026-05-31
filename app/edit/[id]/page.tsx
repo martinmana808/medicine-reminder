@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getMedicine } from "@/lib/repo";
 import { MedicineForm } from "@/components/MedicineForm";
 import { DeleteButton } from "@/components/DeleteButton";
+import { UndoLastTakeButton } from "@/components/UndoLastTakeButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit medicine" };
@@ -43,6 +44,17 @@ export default async function EditPage({
           durationDays,
         }}
       />
+
+      <div className="border-t border-slate-200 pt-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Corrections
+        </p>
+        <p className="mb-2 text-sm text-slate-500">
+          Tapped &quot;Taken&quot; by accident? This reverts your most recent take
+          and recalculates the next dose.
+        </p>
+        <UndoLastTakeButton medicineId={med.id} />
+      </div>
 
       <div className="border-t border-slate-200 pt-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">

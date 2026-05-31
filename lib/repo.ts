@@ -356,6 +356,22 @@ export async function undoDose(doseId: number): Promise<boolean> {
   return true;
 }
 
+/**
+ * Undo the most recently taken dose for a medicine — the quick "I tapped Taken by
+ * accident" fix. Reuses undoDose, so the next dose re-derives from the prior take.
+ */
+export async function undoLastTake(medicineId: number): Promise<boolean> {
+  const rows = await query<DoseRow>(
+    `select id from doses
+     where medicine_id = $1 and status = 'taken'
+     order by taken_at desc nulls last, id desc
+     limit 1`,
+    [medicineId],
+  );
+  if (rows.length === 0) return false;
+  return undoDose(rows[0].id);
+}
+
 /** Delete a dose entirely (history cleanup), then recompute the schedule. */
 export async function deleteDose(doseId: number): Promise<boolean> {
   const rows = await query<DoseRow>(
