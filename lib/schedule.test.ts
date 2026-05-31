@@ -4,6 +4,7 @@ import {
   firstDueAt,
   advanceAfterFire,
   reanchorAfterTaken,
+  recomputeNextDue,
   isCourseFinished,
   type ScheduleSpec,
 } from "./schedule";
@@ -109,6 +110,68 @@ describe("reanchorAfterTaken", () => {
     const current = new Date("2026-05-30T08:00:00Z");
     const result = reanchorAfterTaken(daily(["08:00"]), taken, current);
     expect(result!.toISOString()).toBe(current.toISOString());
+  });
+});
+
+describe("recomputeNextDue", () => {
+  const start = new Date("2026-05-29T10:00:00Z");
+  const now = new Date("2026-05-29T16:00:00Z");
+
+  it("interval, never taken: start + interval", () => {
+    const r = recomputeNextDue(
+      interval(8),
+      start,
+      { lastTakenAt: null, lastSlotAt: null },
+      now,
+      "UTC",
+    );
+    expect(r.toISOString()).toBe("2026-05-29T18:00:00.000Z");
+  });
+
+  it("interval, taken: re-anchors from the last intake", () => {
+    const r = recomputeNextDue(
+      interval(8),
+      start,
+      { lastTakenAt: new Date("2026-05-29T15:30:00Z"), lastSlotAt: start },
+      now,
+      "UTC",
+    );
+    expect(r.toISOString()).toBe("2026-05-29T23:30:00.000Z");
+  });
+
+  it("daily, no history: next future clock slot", () => {
+    const r = recomputeNextDue(
+      daily(["01:00", "13:00"]),
+      start,
+      { lastTakenAt: null, lastSlotAt: null },
+      now,
+      "UTC",
+    );
+    // now is 16:00, next slot is tomorrow 01:00
+    expect(r.toISOString()).toBe("2026-05-30T01:00:00.000Z");
+  });
+
+  it("daily, last slot was 13:00: walks the grid to the next slot (skips taken)", () => {
+    const r = recomputeNextDue(
+      daily(["01:00", "13:00"]),
+      start,
+      { lastTakenAt: now, lastSlotAt: new Date("2026-05-29T13:00:00Z") },
+      now,
+      "UTC",
+    );
+    expect(r.toISOString()).toBe("2026-05-30T01:00:00.000Z");
+  });
+
+  it("daily, last slot in the further past: next slot may still be overdue (cron catches up)", () => {
+    const r = recomputeNextDue(
+      daily(["01:00", "13:00"]),
+      start,
+      { lastTakenAt: null, lastSlotAt: new Date("2026-05-28T13:00:00Z") },
+      now,
+      "UTC",
+    );
+    // next slot after 2026-05-28 13:00 is 2026-05-29 01:00 (still before now → overdue)
+    expect(r.toISOString()).toBe("2026-05-29T01:00:00.000Z");
   });
 });
 

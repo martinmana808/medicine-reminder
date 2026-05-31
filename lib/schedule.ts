@@ -94,6 +94,44 @@ export function reanchorAfterTaken(
   return currentNextDue; // daily clock schedule is unaffected
 }
 
+/**
+ * Context for deriving the next dose: the most recent actual intake time
+ * (drives interval re-anchoring) and the most recent materialized slot
+ * (drives the daily clock cursor).
+ */
+export interface RecomputeCtx {
+  lastTakenAt: Date | null;
+  lastSlotAt: Date | null;
+}
+
+/**
+ * The single source of truth for a medicine's next dose. Pure and deterministic:
+ * given the schedule and what has actually happened, it always returns the same
+ * answer — so every mutation (take, undo, delete, edit, cron) can just call this
+ * instead of nudging stored state around.
+ *
+ *  - interval: re-anchors from the last actual intake (or the start if none),
+ *    so "every 8h" counts from when you really took it.
+ *  - daily: walks the fixed clock grid forward from the last materialized slot,
+ *    independent of when you physically took anything.
+ */
+export function recomputeNextDue(
+  spec: ScheduleSpec,
+  startAt: Date,
+  ctx: RecomputeCtx,
+  now: Date,
+  tz: string,
+): Date {
+  if (spec.type === "interval") {
+    const base = ctx.lastTakenAt ?? startAt;
+    return new Date(base.getTime() + spec.intervalHours! * HOUR_MS);
+  }
+  if (ctx.lastSlotAt) {
+    return nextDailyOccurrence(ctx.lastSlotAt, spec.dailyTimes!, tz);
+  }
+  return firstDueAt(spec, startAt, tz, now);
+}
+
 /** A course is finished once its next dose would fall past the end date. */
 export function isCourseFinished(
   nextDueAt: Date | null,

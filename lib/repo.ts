@@ -1,9 +1,8 @@
 import { query } from "./db";
 import {
-  advanceAfterFire,
   firstDueAt,
   isCourseFinished,
-  reanchorAfterTaken,
+  recomputeNextDue,
   type ScheduleSpec,
 } from "./schedule";
 import type {
@@ -197,33 +196,60 @@ export async function getDueMedicines(now: Date): Promise<Medicine[]> {
 }
 
 /**
- * Fire the currently-due dose for a medicine: create the dose row (idempotent on
- * the unique scheduled_at), then advance next_due_at and deactivate if the course
- * has ended. Returns the created dose only when it was newly inserted (so the
- * caller knows whether to push).
+ * THE single place next_due_at is set. Derives it deterministically from the
+ * schedule + what has actually been logged (last intake time, last materialized
+ * slot). Every mutation calls this instead of nudging next_due_at directly.
+ */
+export async function recomputeMedicineNextDue(
+  medicineId: number,
+  now: Date,
+): Promise<void> {
+  const med = await getMedicine(medicineId);
+  if (!med) return;
+  const tz = await getTimezone();
+  const takenRows = await query<{ t: Date | null }>(
+    "select max(taken_at) as t from doses where medicine_id = $1 and status = 'taken'",
+    [medicineId],
+  );
+  const slotRows = await query<{ s: Date | null }>(
+    "select max(scheduled_at) as s from doses where medicine_id = $1",
+    [medicineId],
+  );
+  const next = recomputeNextDue(
+    specOf(med),
+    med.startAt,
+    {
+      lastTakenAt: takenRows[0]?.t ?? null,
+      lastSlotAt: slotRows[0]?.s ?? null,
+    },
+    now,
+    tz,
+  );
+  const finished = isCourseFinished(next, med.endAt);
+  await query(
+    "update medicines set next_due_at = $2, active = $3 where id = $1",
+    [medicineId, finished ? null : next, !finished],
+  );
+}
+
+/**
+ * Fire the currently-due dose: create the due row (idempotent on the unique
+ * scheduled_at) and recompute next_due_at. Returns the created dose only when it
+ * was newly inserted, so the caller knows whether to push a notification.
  */
 export async function fireDose(
   med: Medicine,
-  tz: string,
+  now: Date,
 ): Promise<{ created: boolean; dose: Dose | null }> {
   if (!med.nextDueAt) return { created: false, dose: null };
-  const scheduledAt = med.nextDueAt;
-
   const inserted = await query<DoseRow>(
     `insert into doses (medicine_id, scheduled_at, status)
      values ($1, $2, 'due')
      on conflict (medicine_id, scheduled_at) do nothing
      returning *`,
-    [med.id, scheduledAt],
+    [med.id, med.nextDueAt],
   );
-
-  const newNextDue = advanceAfterFire(specOf(med), scheduledAt, tz);
-  const finished = isCourseFinished(newNextDue, med.endAt);
-  await query(
-    "update medicines set next_due_at = $2, active = $3 where id = $1",
-    [med.id, finished ? null : newNextDue, !finished],
-  );
-
+  await recomputeMedicineNextDue(med.id, now);
   return {
     created: inserted.length > 0,
     dose: inserted[0] ? toDose(inserted[0]) : null,
@@ -239,23 +265,11 @@ export async function markTaken(
     [doseId],
   );
   if (existing.length === 0 || existing[0].status === "taken") return false;
-  const med = await getMedicine(existing[0].medicine_id);
-  const prevNextDue = med?.nextDueAt ?? null;
-
   await query(
-    `update doses set status = 'taken', taken_at = $2, prev_next_due_at = $3
-     where id = $1 and status <> 'taken'`,
-    [doseId, takenAt, prevNextDue],
+    "update doses set status = 'taken', taken_at = $2 where id = $1",
+    [doseId, takenAt],
   );
-
-  if (med && med.type === "interval") {
-    const newNextDue = reanchorAfterTaken(specOf(med), takenAt, med.nextDueAt);
-    const finished = isCourseFinished(newNextDue, med.endAt);
-    await query(
-      "update medicines set next_due_at = $2, active = $3 where id = $1",
-      [med.id, finished ? null : newNextDue, !finished],
-    );
-  }
+  await recomputeMedicineNextDue(existing[0].medicine_id, new Date());
   return true;
 }
 
@@ -279,10 +293,9 @@ export async function snoozeDose(
 }
 
 /**
- * Record that a medicine was taken at an arbitrary time and re-anchor its
- * schedule from that moment. Resolves the latest pending "due" dose if one
- * exists, otherwise logs a fresh "taken" dose. Interval meds get their next
- * dose set to takenAt + interval; daily meds advance to the next clock time.
+ * Log that a medicine was taken at a chosen time. Resolves the outstanding due
+ * dose if one exists, otherwise records the take against the upcoming scheduled
+ * slot (taking the next dose early). next_due_at is then recomputed from scratch.
  */
 export async function takeMedicineAt(
   medicineId: number,
@@ -290,52 +303,37 @@ export async function takeMedicineAt(
 ): Promise<boolean> {
   const med = await getMedicine(medicineId);
   if (!med) return false;
-  const tz = await getTimezone();
 
-  const prevNextDue = med.nextDueAt;
   const pending = await query<DoseRow>(
     "select * from doses where medicine_id = $1 and status = 'due' order by scheduled_at desc limit 1",
     [medicineId],
   );
 
-  // The scheduled slot this take fulfills: an outstanding due dose if one exists,
-  // otherwise the upcoming next_due slot (taking the upcoming dose early).
-  const slot = pending.length > 0 ? pending[0].scheduled_at : (med.nextDueAt ?? takenAt);
-
   if (pending.length > 0) {
     await query(
-      "update doses set status = 'taken', taken_at = $2, prev_next_due_at = $3 where id = $1",
-      [pending[0].id, takenAt, prevNextDue],
+      "update doses set status = 'taken', taken_at = $2 where id = $1",
+      [pending[0].id, takenAt],
     );
   } else {
-    // Record the dose against its real scheduled slot (so it counts as that dose),
-    // logging the actual time taken.
+    // Record against the upcoming scheduled slot so it counts as that dose.
+    const slot = med.nextDueAt ?? takenAt;
     await query(
-      `insert into doses (medicine_id, scheduled_at, status, taken_at, source, prev_next_due_at)
-       values ($1, $2, 'taken', $3, 'scheduled', $4)
+      `insert into doses (medicine_id, scheduled_at, status, taken_at, source)
+       values ($1, $2, 'taken', $3, 'scheduled')
        on conflict (medicine_id, scheduled_at)
-       do update set status = 'taken', taken_at = excluded.taken_at,
-                     prev_next_due_at = excluded.prev_next_due_at`,
-      [medicineId, slot, takenAt, prevNextDue],
+       do update set status = 'taken', taken_at = excluded.taken_at`,
+      [medicineId, slot, takenAt],
     );
   }
 
-  // Interval meds re-anchor from the moment taken; daily meds advance to the next
-  // clock slot AFTER the slot just taken (so taking the 1 PM dose early jumps to 1 AM).
-  const anchor = med.type === "interval" ? takenAt : slot;
-  const newNextDue = advanceAfterFire(specOf(med), anchor, tz);
-  const finished = isCourseFinished(newNextDue, med.endAt);
-  await query(
-    "update medicines set next_due_at = $2, active = $3 where id = $1",
-    [medicineId, finished ? null : newNextDue, !finished],
-  );
+  await recomputeMedicineNextDue(medicineId, new Date());
   return true;
 }
 
 /**
- * Undo a taken dose. A manual (ad-hoc) dose is deleted outright so it leaves no
- * phantom entry; a scheduled dose reverts to pending. Either way the medicine's
- * next dose is restored to what it was before the dose was taken.
+ * Undo a taken dose. If it was an upcoming dose taken early (its slot is still in
+ * the future), remove the record entirely; otherwise revert it to pending so it
+ * shows as due again. next_due_at is recomputed either way.
  */
 export async function undoDose(doseId: number): Promise<boolean> {
   const doseRows = await query<DoseRow>("select * from doses where id = $1", [
@@ -343,18 +341,9 @@ export async function undoDose(doseId: number): Promise<boolean> {
   ]);
   if (doseRows.length === 0) return false;
   const row = doseRows[0];
+  const now = new Date();
 
-  const med = await getMedicine(row.medicine_id);
-  if (med) {
-    const restore = row.prev_next_due_at ?? row.scheduled_at;
-    const finished = isCourseFinished(restore, med.endAt);
-    await query(
-      "update medicines set next_due_at = $2, active = $3 where id = $1",
-      [med.id, finished ? null : restore, !finished],
-    );
-  }
-
-  if (row.source === "manual") {
+  if (new Date(row.scheduled_at).getTime() > now.getTime()) {
     await query("delete from doses where id = $1", [doseId]);
   } else {
     await query(
@@ -362,28 +351,34 @@ export async function undoDose(doseId: number): Promise<boolean> {
       [doseId],
     );
   }
+
+  await recomputeMedicineNextDue(row.medicine_id, now);
   return true;
 }
 
-/** Delete a dose entirely (history cleanup). */
+/** Delete a dose entirely (history cleanup), then recompute the schedule. */
 export async function deleteDose(doseId: number): Promise<boolean> {
   const rows = await query<DoseRow>(
-    "delete from doses where id = $1 returning id",
+    "delete from doses where id = $1 returning medicine_id",
     [doseId],
   );
-  return rows.length > 0;
+  if (rows.length === 0) return false;
+  await recomputeMedicineNextDue(rows[0].medicine_id, new Date());
+  return true;
 }
 
-/** Edit the recorded "taken at" time of a dose (does not re-anchor schedule). */
+/** Edit the recorded "taken at" time of a dose, then recompute the schedule. */
 export async function updateDoseTakenAt(
   doseId: number,
   takenAt: Date,
 ): Promise<boolean> {
   const rows = await query<DoseRow>(
-    "update doses set taken_at = $2 where id = $1 returning id",
+    "update doses set taken_at = $2 where id = $1 returning medicine_id",
     [doseId, takenAt],
   );
-  return rows.length > 0;
+  if (rows.length === 0) return false;
+  await recomputeMedicineNextDue(rows[0].medicine_id, new Date());
+  return true;
 }
 
 // ---------- doses (history / status) ----------
@@ -421,7 +416,7 @@ export async function getOutstandingDueDoses(): Promise<DoseWithMedicine[]> {
   const rows = await query<DoseRow>(
     `select d.*, m.name as medicine_name
      from doses d join medicines m on m.id = d.medicine_id
-     where d.status = 'due' and m.active = true
+     where d.status = 'due' and m.active = true and d.scheduled_at <= now()
      order by d.medicine_id, d.scheduled_at asc`,
   );
   return rows.map((r) => ({ ...toDose(r), medicineName: r.medicine_name ?? "" }));

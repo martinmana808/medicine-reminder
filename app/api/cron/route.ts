@@ -1,4 +1,4 @@
-import { fireDose, getDueMedicines, getTimezone } from "@/lib/repo";
+import { fireDose, getDueMedicines } from "@/lib/repo";
 import { sendToAll } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
@@ -15,12 +15,11 @@ export async function GET(req: Request) {
   }
 
   const now = new Date();
-  const tz = await getTimezone();
   const due = await getDueMedicines(now);
 
   let fired = 0;
   for (const med of due) {
-    const { created, dose } = await fireDose(med, tz);
+    const { created, dose } = await fireDose(med, now);
     if (created && dose) {
       await sendToAll({
         title: `Time for ${med.name}`,
